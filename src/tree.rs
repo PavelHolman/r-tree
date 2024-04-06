@@ -37,23 +37,24 @@ impl<Item> RTree<Item>
         self.count
     }
 
-    pub fn insert(&mut self, data: impl IntoIterator<Item=Item>) {
-        for item in data {
-            if self.root.insert(item) {
-                self.count += 1;
-            }
-        }
+    /// Insert an item into the tree.
+    /// References to items intersecting the inserted item are returned.
+    pub fn insert(&mut self, item: Item) -> impl Iterator<Item=&Item> {
+        self.count += 1;
+        self.root.insert(BoundingBox::<Item>::from_item(&item), item)
     }
 
-    pub fn search(&self, bound: BoundingBox<Item>) -> impl Iterator<Item=&Item> {
+    /// Search for items in the tree in the given bounds.
+    /// References to found items are returned.
+    pub fn search(&self, bound: &BoundingBox<Item>) -> impl Iterator<Item=&Item> {
         self.root.search(bound)
     }
 
-    pub fn remove(&mut self, data: impl IntoIterator<Item=Item>) {
-        for item in data {
-            if self.root.remove(item) {
-                self.count -= 1;
-            }
-        }
+    /// Remove items from the tree in the given bounds.
+    /// Removed items are returned.
+    pub fn remove(&mut self, bound: &BoundingBox<Item>) -> impl Iterator<Item=Item> {
+        let removed_items: Vec<Item> = self.root.remove(bound).collect();
+        self.count -= removed_items.len();
+        removed_items.into_iter()
     }
 }

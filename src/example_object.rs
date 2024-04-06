@@ -2,7 +2,7 @@ use generic_array::{arr, GenericArray, typenum};
 
 use crate::spatial_indexable::SpatialIndexable;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct ExampleObject {
     pub(crate) width: f64,
     pub(crate) length: f64,

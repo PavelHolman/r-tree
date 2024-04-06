@@ -1,7 +1,6 @@
 use crate::bounding_box::BoundingBox;
 use crate::spatial_indexable::SpatialIndexable;
 
-// TODO: Can Dim be removed?
 #[derive(Debug)]
 enum NodeOrData<Item>
     where Item: SpatialIndexable {
@@ -19,16 +18,18 @@ impl<Item> Node<Item>
     where Item: SpatialIndexable {
     pub(crate) fn new() -> Self { Self { children: vec![] } }
 
-    pub(crate) fn insert(&mut self, item: Item) -> bool {
-        todo!()
-    }
-
-    pub(crate) fn search(&self, bound: BoundingBox<Item>) -> impl Iterator<Item=&Item> {
+    pub(crate) fn insert(&mut self, bound: BoundingBox<Item>, item: Item) -> impl Iterator<Item=&Item> {
         todo!();
         vec![].iter()
     }
 
-    pub(crate) fn remove(&mut self, item: Item) -> bool {
-        todo!()
+    pub(crate) fn search(&self, bound: &BoundingBox<Item>) -> impl Iterator<Item=&Item> {
+        todo!();
+        vec![].iter()
+    }
+
+    pub(crate) fn remove(&mut self, bound: &BoundingBox<Item>) -> impl Iterator<Item=Item> {
+        todo!();
+        vec![].into_iter()
     }
 }

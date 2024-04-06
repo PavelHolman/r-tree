@@ -19,19 +19,21 @@ fn test() {
     let obj1 = ExampleObject { width: 10., length: 20., x: 10., y: 5. };
     let obj2 = ExampleObject { width: 5., length: 10., x: 25., y: 5. };
 
-    db.insert([obj1, obj2]);
+    db.insert(obj1);
+    db.insert(obj2);
 
-    let objects: Vec<_> = db.search(BoundingBox::from_ranges(arr![(0., 40.), (0., 40.)])).collect();
+    let objects: Vec<_> = db.search(&BoundingBox::from_ranges(arr![(0., 40.), (0., 40.)])).collect();
 
     assert_eq!(objects.len(), 2);
 
     println!("{:?}", db);
     println!("{:?}", objects);
 
+    let objects: Vec<_> = objects.iter().copied().collect();
+
     db.remove(objects);
 
     assert_eq!(db.count(), 0);
 
     println!("{:?}", db);
-    println!("{:?}", objects);
 }
