@@ -1,6 +1,5 @@
 use crate::bounding_box::BoundingBox;
 use crate::example_object::ExampleObject;
-use crate::spatial_indexable::SpatialIndexable;
 use crate::tree::RTree;
 
 mod utils;

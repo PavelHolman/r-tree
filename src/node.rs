@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use crate::bounding_box::BoundingBox;
 use crate::spatial_indexable::SpatialIndexable;
 
