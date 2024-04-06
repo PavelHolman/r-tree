@@ -40,7 +40,7 @@ impl<Index, const N: usize> RTree<Index, N>
         }
     }
 
-    pub fn search(&self, bound: impl Borrow<BoundingBox<Index::Coord, N>>) -> impl Iterator<Item=&Index> {
+    pub fn search(&self, bound: BoundingBox<Index::Coord, N>) -> impl Iterator<Item=&Index> {
         self.root.search(bound)
     }
 

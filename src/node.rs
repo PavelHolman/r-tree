@@ -10,25 +10,25 @@ enum NodeOrData<Index, const N: usize>
 }
 
 #[derive(Debug)]
-pub struct Node<Index, const N: usize>
+pub(crate) struct Node<Index, const N: usize>
     where Index: SpatialIndexable<N> {
     children: Vec<NodeOrData<Index, N>>,
 }
 
 impl<Index, const N: usize> Node<Index, N>
     where Index: SpatialIndexable<N> {
-    pub fn new() -> Self { Self { children: vec![] } }
+    pub(crate) fn new() -> Self { Self { children: vec![] } }
 
-    pub fn insert(&mut self, item: Index) {
+    pub(crate) fn insert(&mut self, item: Index) {
         todo!()
     }
 
-    pub(crate) fn search(&self, bound: impl Borrow<BoundingBox<Index::Coord, N>>) -> impl Iterator<Item=&Index> {
+    pub(crate) fn search(&self, bound: BoundingBox<Index::Coord, N>) -> impl Iterator<Item=&Index> {
         todo!();
         vec![].iter()
     }
 
-    pub fn remove(&mut self, item: Index) {
+    pub(crate) fn remove(&mut self, item: Index) {
         todo!()
     }
 }
