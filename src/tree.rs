@@ -1,21 +1,18 @@
 use std::mem::size_of;
+
 use crate::bounding_box::BoundingBox;
 use crate::node::Node;
 use crate::spatial_indexable::SpatialIndexable;
 
-
 #[derive(Debug)]
 pub struct RTree<Index, const N: usize>
-    where Index: SpatialIndexable<N>,
-{
+    where Index: SpatialIndexable<N>, {
     root: Node<Index, N>,
     max_size: usize,
 }
 
 impl<Index, const N: usize> RTree<Index, N>
-    where Index: SpatialIndexable<N>,
-
-{
+    where Index: SpatialIndexable<N>, {
     const LEAF_SIZE_IN_BYTES: usize = 2048;
     const TYPE_SIZE_IN_BYTES: usize = size_of::<Index>();
 
