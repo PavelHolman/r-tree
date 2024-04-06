@@ -1,3 +1,5 @@
+use generic_array::{arr, GenericArray, typenum};
+
 use crate::spatial_indexable::SpatialIndexable;
 
 #[derive(Debug)]
@@ -8,14 +10,15 @@ pub(crate) struct ExampleObject {
     pub(crate) y: f64,
 }
 
-impl SpatialIndexable<2> for ExampleObject {
+impl SpatialIndexable for ExampleObject {
     type Coord = f64;
+    type Dim = typenum::U2;
 
-    fn min(&self) -> [Self::Coord; 2] {
-        [self.x, self.y]
+    fn min(&self) -> GenericArray<Self::Coord, Self::Dim> {
+        arr![self.x, self.y]
     }
 
-    fn max(&self) -> [Self::Coord; 2] {
-        [self.x + self.width, self.y + self.length]
+    fn max(&self) -> GenericArray<Self::Coord, Self::Dim> {
+        arr![self.x + self.width, self.y + self.length]
     }
 }

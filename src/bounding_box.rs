@@ -1,34 +1,36 @@
+use generic_array::GenericArray;
+
 use crate::spatial_indexable::SpatialIndexable;
 use crate::utils::Unzip;
 
-pub struct BoundingBox<Coord, const Dim: usize>
-    where Coord: PartialOrd + Copy {
-    min: [Coord; Dim],
-    max: [Coord; Dim],
+pub struct BoundingBox<Item>
+    where Item: SpatialIndexable {
+    min: GenericArray<Item::Coord, Item::Dim>,
+    max: GenericArray<Item::Coord, Item::Dim>,
 }
 
-impl<Coord, const Dim: usize> BoundingBox<Coord, Dim>
-    where Coord: PartialOrd + Copy {
-    pub fn from_ranges(bounds: [(Coord, Coord); Dim]) -> Self {
+impl<Item> BoundingBox<Item>
+    where Item: SpatialIndexable {
+    pub fn from_ranges(bounds: GenericArray<(Item::Coord, Item::Coord), Item::Dim>) -> Self {
         let (min, max) = bounds.unzip();
         Self { min, max }
     }
 
-    pub fn from_bounds(min: [Coord; Dim], max: [Coord; Dim]) -> Self {
+    pub fn from_bounds(min: GenericArray<Item::Coord, Item::Dim>, max: GenericArray<Item::Coord, Item::Dim>) -> Self {
         Self { min, max }
     }
 }
 
-impl<Coord, const Dim: usize> SpatialIndexable<Dim> for BoundingBox<Coord, Dim>
-    where Coord: PartialOrd + Copy {
-    type Coord = Coord;
+impl<Item> SpatialIndexable for BoundingBox<Item>
+    where Item: SpatialIndexable {
+    type Coord = Item::Coord;
+    type Dim = Item::Dim;
 
-    fn min(&self) -> [Self::Coord; Dim]
-    {
-        self.min
+    fn min(&self) -> GenericArray<Self::Coord, Self::Dim> {
+        self.min.clone()
     }
 
-    fn max(&self) -> [Self::Coord; Dim] {
-        self.max
+    fn max(&self) -> GenericArray<Self::Coord, Self::Dim> {
+        self.max.clone()
     }
 }

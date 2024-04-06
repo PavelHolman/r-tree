@@ -1,6 +1,9 @@
-pub trait SpatialIndexable<const Dim: usize> {
-    type Coord: PartialOrd + Copy;
+use generic_array::{ArrayLength, GenericArray};
 
-    fn min(&self) -> [Self::Coord; Dim];
-    fn max(&self) -> [Self::Coord; Dim];
+pub trait SpatialIndexable {
+    type Coord: PartialOrd + Copy;
+    type Dim: ArrayLength;
+
+    fn min(&self) -> GenericArray<Self::Coord, Self::Dim>;
+    fn max(&self) -> GenericArray<Self::Coord, Self::Dim>;
 }
