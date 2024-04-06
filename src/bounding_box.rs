@@ -19,6 +19,10 @@ impl<Item> BoundingBox<Item>
     pub fn from_bounds(min: GenericArray<Item::Coord, Item::Dim>, max: GenericArray<Item::Coord, Item::Dim>) -> Self {
         Self { min, max }
     }
+
+    pub fn from_item(item: &Item) -> Self {
+        Self::from_bounds(item.min(), item.max())
+    }
 }
 
 impl<Item> SpatialIndexable for BoundingBox<Item>
