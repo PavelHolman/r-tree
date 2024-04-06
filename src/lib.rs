@@ -30,6 +30,8 @@ fn test() {
 
     db.remove(objects);
 
+    assert_eq!(db.count(), 0);
+
     println!("{:?}", db);
     println!("{:?}", objects);
 }
