@@ -19,7 +19,7 @@ impl<Item> Node<Item>
     where Item: SpatialIndexable {
     pub(crate) fn new() -> Self { Self { children: vec![] } }
 
-    pub(crate) fn insert(&mut self, item: Item) {
+    pub(crate) fn insert(&mut self, item: Item) -> bool {
         todo!()
     }
 
@@ -28,7 +28,7 @@ impl<Item> Node<Item>
         vec![].iter()
     }
 
-    pub(crate) fn remove(&mut self, item: Item) {
+    pub(crate) fn remove(&mut self, item: Item) -> bool {
         todo!()
     }
 }

@@ -8,6 +8,7 @@ use crate::spatial_indexable::SpatialIndexable;
 pub struct RTree<Item>
     where Item: SpatialIndexable, {
     root: Node<Item>,
+    count: usize,
     max_size: usize,
 }
 
@@ -19,6 +20,7 @@ impl<Item> RTree<Item>
     pub fn new() -> Self {
         Self {
             root: Node::new(),
+            count: 0,
             max_size: Self::LEAF_SIZE_IN_BYTES / Self::TYPE_SIZE_IN_BYTES,
         }
     }
@@ -26,13 +28,20 @@ impl<Item> RTree<Item>
     pub fn with_node_capacity(capacity: usize) -> Self {
         Self {
             root: Node::new(),
+            count: 0,
             max_size: capacity,
         }
     }
 
+    pub fn count(&self) -> usize {
+        self.count
+    }
+
     pub fn insert(&mut self, data: impl IntoIterator<Item=Item>) {
         for item in data {
-            self.root.insert(item)
+            if self.root.insert(item) {
+                self.count += 1;
+            }
         }
     }
 
@@ -42,7 +51,9 @@ impl<Item> RTree<Item>
 
     pub fn remove(&mut self, data: impl IntoIterator<Item=Item>) {
         for item in data {
-            self.root.remove(item);
+            if self.root.remove(item) {
+                self.count -= 1;
+            }
         }
     }
 }
