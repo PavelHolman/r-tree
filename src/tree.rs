@@ -5,16 +5,16 @@ use crate::node::Node;
 use crate::spatial_indexable::SpatialIndexable;
 
 #[derive(Debug)]
-pub struct RTree<Index, const N: usize>
-    where Index: SpatialIndexable<N>, {
-    root: Node<Index, N>,
+pub struct RTree<Item, const N: usize>
+    where Item: SpatialIndexable<N>, {
+    root: Node<Item, N>,
     max_size: usize,
 }
 
-impl<Index, const N: usize> RTree<Index, N>
-    where Index: SpatialIndexable<N>, {
+impl<Item, const N: usize> RTree<Item, N>
+    where Item: SpatialIndexable<N>, {
     const LEAF_SIZE_IN_BYTES: usize = 2048;
-    const TYPE_SIZE_IN_BYTES: usize = size_of::<Index>();
+    const TYPE_SIZE_IN_BYTES: usize = size_of::<Item>();
 
     pub fn new() -> Self {
         Self {
@@ -30,17 +30,17 @@ impl<Index, const N: usize> RTree<Index, N>
         }
     }
 
-    pub fn insert(&mut self, data: impl IntoIterator<Item=Index>) {
+    pub fn insert(&mut self, data: impl IntoIterator<Item=Item>) {
         for item in data {
             self.root.insert(item)
         }
     }
 
-    pub fn search(&self, bound: BoundingBox<Index::Coord, N>) -> impl Iterator<Item=&Index> {
+    pub fn search(&self, bound: BoundingBox<Item::Coord, N>) -> impl Iterator<Item=&Item> {
         self.root.search(bound)
     }
 
-    pub fn remove(&mut self, data: impl IntoIterator<Item=Index>) {
+    pub fn remove(&mut self, data: impl IntoIterator<Item=Item>) {
         for item in data {
             self.root.remove(item);
         }
