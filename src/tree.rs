@@ -5,19 +5,16 @@ use crate::node::Node;
 use crate::spatial_indexable::SpatialIndexable;
 
 
-// TODO: Can remove Coord?
 #[derive(Debug)]
-pub struct RTree<Coord, Index, const N: usize>
-    where Coord: PartialOrd + Copy,
-          Index: SpatialIndexable<N>,
+pub struct RTree<Index, const N: usize>
+    where Index: SpatialIndexable<N>,
 {
-    root: Node<Coord, Index, N>,
+    root: Node<Index, N>,
     max_size: usize,
 }
 
-impl<Coord, Index, const N: usize> RTree<Coord, Index, N>
-    where Coord: PartialOrd + Copy,
-          Index: SpatialIndexable<N>,
+impl<Index, const N: usize> RTree<Index, N>
+    where Index: SpatialIndexable<N>,
 
 {
     const LEAF_SIZE_IN_BYTES: usize = 2048;
@@ -43,7 +40,7 @@ impl<Coord, Index, const N: usize> RTree<Coord, Index, N>
         }
     }
 
-    pub fn search(&self, bound: impl Borrow<BoundingBox<Coord, N>>) -> impl Iterator<Item=&Index> {
+    pub fn search(&self, bound: impl Borrow<BoundingBox<Index::Coord, N>>) -> impl Iterator<Item=&Index> {
         self.root.search(bound)
     }
 
