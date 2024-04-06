@@ -1,3 +1,5 @@
+use generic_array::arr;
+
 use crate::bounding_box::BoundingBox;
 use crate::example_object::ExampleObject;
 use crate::tree::RTree;
@@ -19,9 +21,14 @@ fn test() {
 
     db.insert([obj1, obj2]);
 
-    let objects: Vec<_> = db.search(BoundingBox::from_ranges([(0., 40.), (0., 40.)])).collect();
+    let objects: Vec<_> = db.search(BoundingBox::from_ranges(arr![(0., 40.), (0., 40.)])).collect();
 
     assert_eq!(objects.len(), 2);
+
+    println!("{:?}", db);
+    println!("{:?}", objects);
+
+    db.remove(objects);
 
     println!("{:?}", db);
     println!("{:?}", objects);
