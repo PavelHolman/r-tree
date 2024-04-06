@@ -3,16 +3,16 @@ use crate::example_object::ExampleObject;
 use crate::spatial_indexable::SpatialIndexable;
 use crate::tree::RTree;
 
-mod bounding_box;
-mod spatial_indexable;
 mod utils;
 mod node;
-mod tree;
 mod example_object;
+pub mod bounding_box;
+pub mod spatial_indexable;
+pub mod tree;
 
 
 #[test]
-pub fn test() {
+fn test() {
     let mut db = RTree::new();
 
     let obj1 = ExampleObject { width: 10., length: 20., x: 10., y: 5. };
