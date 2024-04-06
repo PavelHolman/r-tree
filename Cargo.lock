@@ -5,3 +5,12 @@ version = 3
 [[package]]
 name = "r_tree"
 version = "0.1.0"
+dependencies = [
+ "unzip-array-of-tuple",
+]
+
+[[package]]
+name = "unzip-array-of-tuple"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3d7000150fe3eef2157d8df087d19d14207129763482287a6a4cbd59a2adea0"
