@@ -5,14 +5,14 @@ use crate::node::Node;
 use crate::spatial_indexable::SpatialIndexable;
 
 #[derive(Debug)]
-pub struct RTree<Item, const N: usize>
-    where Item: SpatialIndexable<N>, {
-    root: Node<Item, N>,
+pub struct RTree<Item, const Dim: usize>
+    where Item: SpatialIndexable<Dim>, {
+    root: Node<Item, Dim>,
     max_size: usize,
 }
 
-impl<Item, const N: usize> RTree<Item, N>
-    where Item: SpatialIndexable<N>, {
+impl<Item, const Dim: usize> RTree<Item, Dim>
+    where Item: SpatialIndexable<Dim>, {
     const LEAF_SIZE_IN_BYTES: usize = 2048;
     const TYPE_SIZE_IN_BYTES: usize = size_of::<Item>();
 
@@ -36,7 +36,7 @@ impl<Item, const N: usize> RTree<Item, N>
         }
     }
 
-    pub fn search(&self, bound: BoundingBox<Item::Coord, N>) -> impl Iterator<Item=&Item> {
+    pub fn search(&self, bound: BoundingBox<Item::Coord, Dim>) -> impl Iterator<Item=&Item> {
         self.root.search(bound)
     }
 
