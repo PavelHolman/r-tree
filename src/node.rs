@@ -3,27 +3,27 @@ use crate::spatial_indexable::SpatialIndexable;
 
 // TODO: Can Dim be removed?
 #[derive(Debug)]
-enum NodeOrData<Item, const Dim: usize>
-    where Item: SpatialIndexable<Dim> {
-    Node(Node<Item, Dim>),
+enum NodeOrData<Item>
+    where Item: SpatialIndexable {
+    Node(Node<Item>),
     Data(Item),
 }
 
 #[derive(Debug)]
-pub(crate) struct Node<Item, const Dim: usize>
-    where Item: SpatialIndexable<Dim> {
-    children: Vec<NodeOrData<Item, Dim>>,
+pub(crate) struct Node<Item>
+    where Item: SpatialIndexable {
+    children: Vec<NodeOrData<Item>>,
 }
 
-impl<Item, const Dim: usize> Node<Item, Dim>
-    where Item: SpatialIndexable<Dim> {
+impl<Item> Node<Item>
+    where Item: SpatialIndexable {
     pub(crate) fn new() -> Self { Self { children: vec![] } }
 
     pub(crate) fn insert(&mut self, item: Item) {
         todo!()
     }
 
-    pub(crate) fn search(&self, bound: BoundingBox<Item::Coord, Dim>) -> impl Iterator<Item=&Item> {
+    pub(crate) fn search(&self, bound: BoundingBox<Item>) -> impl Iterator<Item=&Item> {
         todo!();
         vec![].iter()
     }
