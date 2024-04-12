@@ -1,40 +1,37 @@
-use generic_array::GenericArray;
+use crate::point::Point;
 
-use crate::spatial_indexable::SpatialIndexable;
-use crate::utils::Unzip;
+pub trait Bound {}
 
-pub struct BoundingBox<Item>
-    where Item: SpatialIndexable {
-    min: GenericArray<Item::Coord, Item::Dim>,
-    max: GenericArray<Item::Coord, Item::Dim>,
+#[derive(Debug)]
+pub struct BoundingBox<const N: usize> {
+    bounds: [(f64, f64); N],
 }
 
-impl<Item> BoundingBox<Item>
-    where Item: SpatialIndexable {
-    pub fn from_ranges(bounds: GenericArray<(Item::Coord, Item::Coord), Item::Dim>) -> Self {
-        let (min, max) = bounds.unzip();
-        Self { min, max }
+impl<const N: usize> Bound for BoundingBox<N> {}
+
+impl<const N: usize> BoundingBox<N> {
+    pub fn from_bounds(bounds: [(f64, f64); N]) -> Self {
+        Self { bounds }
     }
 
-    pub fn from_bounds(min: GenericArray<Item::Coord, Item::Dim>, max: GenericArray<Item::Coord, Item::Dim>) -> Self {
-        Self { min, max }
+    pub fn contains(&self, point: &Point<N>) -> bool {
+        self.bounds.iter().zip(point.a.iter())
+            .all(|((min, max), p)| min <= p && p <= max)
     }
 
-    pub fn from_item(item: &Item) -> Self {
-        Self::from_bounds(item.min(), item.max())
-    }
-}
-
-impl<Item> SpatialIndexable for BoundingBox<Item>
-    where Item: SpatialIndexable {
-    type Coord = Item::Coord;
-    type Dim = Item::Dim;
-
-    fn min(&self) -> GenericArray<Self::Coord, Self::Dim> {
-        self.min.clone()
-    }
-
-    fn max(&self) -> GenericArray<Self::Coord, Self::Dim> {
-        self.max.clone()
+    pub fn distance(&self, point: &Point<N>) -> f64 {
+        self.bounds.iter().zip(point.a.iter())
+            .fold(Some(0.0), |acc, ((min, max), p)| {
+                acc.and_then(|acc| {
+                    if p < min {
+                        Some(acc + (min - p).powi(2))
+                    } else if p > max {
+                        Some(acc + (p - max).powi(2))
+                    } else {
+                        None
+                    }
+                })
+            })
+            .map_or(0.0, f64::sqrt)
     }
 }
