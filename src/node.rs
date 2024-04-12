@@ -1,34 +1,33 @@
-use crate::bounding_box::BoundingBox;
-use crate::spatial_indexable::SpatialIndexable;
+use crate::bounding_box::Bound;
+use crate::point::SpatialIndex;
 
 #[derive(Debug)]
-enum NodeOrData<Item>
-    where Item: SpatialIndexable {
-    Node(Node<Item>),
-    Data(Item),
+enum Node<K, V>
+    where K: SpatialIndex {
+    Node(TreeNode<K, V>),
+    Leaf((K, V)),
 }
 
 #[derive(Debug)]
-pub(crate) struct Node<Item>
-    where Item: SpatialIndexable {
-    children: Vec<NodeOrData<Item>>,
+pub(crate) struct TreeNode<K, V>
+    where K: SpatialIndex {
+    children: Vec<Node<K, V>>,
 }
 
-impl<Item> Node<Item>
-    where Item: SpatialIndexable {
+impl<K, V> TreeNode<K, V>
+    where K: SpatialIndex {
     pub(crate) fn new() -> Self { Self { children: vec![] } }
 
-    pub(crate) fn insert(&mut self, bound: BoundingBox<Item>, item: Item) -> impl Iterator<Item=&Item> {
+    pub(crate) fn insert(&mut self, key: K, value: V) -> Option<V> {
+        todo!();
+    }
+
+    pub(crate) fn search(&self, bound: &impl Bound) -> impl Iterator<Item=&(K, V)> {
         todo!();
         vec![].iter()
     }
 
-    pub(crate) fn search(&self, bound: &BoundingBox<Item>) -> impl Iterator<Item=&Item> {
-        todo!();
-        vec![].iter()
-    }
-
-    pub(crate) fn remove(&mut self, bound: &BoundingBox<Item>) -> impl Iterator<Item=Item> {
+    pub(crate) fn remove(&mut self, bound: &impl Bound) -> impl Iterator<Item=(K, V)> {
         todo!();
         vec![].into_iter()
     }

@@ -1,37 +1,32 @@
-use generic_array::arr;
-
 use crate::bounding_box::BoundingBox;
-use crate::example_object::ExampleObject;
+use crate::point::Point;
 use crate::tree::RTree;
 
-mod utils;
+mod point;
+mod bounding_box;
 mod node;
-mod example_object;
-pub mod bounding_box;
-pub mod spatial_indexable;
-pub mod tree;
-
+mod tree;
 
 #[test]
 fn test() {
     let mut db = RTree::new();
 
-    let obj1 = ExampleObject { width: 10., length: 20., x: 10., y: 5. };
-    let obj2 = ExampleObject { width: 5., length: 10., x: 25., y: 5. };
+    db.insert(Point::new([10., 20.]), "Hi!".to_owned());
+    db.insert(Point::new([5., 10.]), "Hello!".to_owned());
 
-    db.insert(obj1);
-    db.insert(obj2);
+    let bound = BoundingBox::from_bounds([(0., 40.), (0., 40.)]);
 
-    let objects: Vec<_> = db.search(&BoundingBox::from_ranges(arr![(0., 40.), (0., 40.)])).collect();
+    let searched: Vec<_> = db.search(&bound).collect();
 
-    assert_eq!(objects.len(), 2);
+    assert_eq!(searched.len(), 2);
 
     println!("{:?}", db);
-    println!("{:?}", objects);
+    println!("{:?}", searched);
 
-    let objects: Vec<_> = objects.iter().copied().collect();
+    let removed: Vec<_> = db.remove(&bound).collect::<Vec<_>>();
 
-    db.remove(objects);
+    println!("{:?}", db);
+    println!("{:?}", removed);
 
     assert_eq!(db.count(), 0);
 
