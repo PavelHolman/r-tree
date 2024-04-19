@@ -1,37 +1,63 @@
-use crate::point::Point;
-
-pub trait Bound {}
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct BoundingBox<const N: usize> {
     bounds: [(f64, f64); N],
 }
 
-impl<const N: usize> Bound for BoundingBox<N> {}
-
 impl<const N: usize> BoundingBox<N> {
-    pub fn from_bounds(bounds: [(f64, f64); N]) -> Self {
+    pub fn new(bounds: [(f64, f64); N]) -> Self {
+        if bounds.len() <= 0 {
+            panic!("Bounding box dimension has to be positive.");
+        }
+        if bounds.iter().any(|(a, b)| a > b) {
+            panic!("Bounding box min has to be less than max.");
+        }
         Self { bounds }
     }
 
-    pub fn contains(&self, point: &Point<N>) -> bool {
-        self.bounds.iter().zip(point.a.iter())
-            .all(|((min, max), p)| min <= p && p <= max)
+    pub(crate) fn intersection(boxes: &[&BoundingBox<N>]) -> Option<Self> {
+        let mut bounds = [(0., 0.); N];
+
+        for i in 0..N {
+            bounds[i].0 = boxes.iter().map(|bbox| bbox.bounds[i].0).fold(f64::MIN, f64::max);
+            bounds[i].1 = boxes.iter().map(|bbox| bbox.bounds[i].1).fold(f64::MAX, f64::min);
+
+            if bounds[i].0 > bounds[i].1 {
+                return None;
+            }
+        }
+
+        Some(Self { bounds })
     }
 
-    pub fn distance(&self, point: &Point<N>) -> f64 {
-        self.bounds.iter().zip(point.a.iter())
-            .fold(Some(0.0), |acc, ((min, max), p)| {
-                acc.and_then(|acc| {
-                    if p < min {
-                        Some(acc + (min - p).powi(2))
-                    } else if p > max {
-                        Some(acc + (p - max).powi(2))
-                    } else {
-                        None
-                    }
-                })
-            })
-            .map_or(0.0, f64::sqrt)
+    pub(crate) fn union(boxes: &[&BoundingBox<N>]) -> Self {
+        let mut bounds = [(0., 0.); N];
+
+        for i in 0..N {
+            bounds[i].0 = boxes.iter().map(|bbox| bbox.bounds[i].0).fold(f64::MAX, f64::min);
+            bounds[i].1 = boxes.iter().map(|bbox| bbox.bounds[i].1).fold(f64::MIN, f64::max);
+        }
+        Self { bounds }
+    }
+
+    pub(crate) fn area(&self) -> u64 {
+        self.bounds.iter()
+            .map(|a| (a.1 - a.0) as u64)
+            .product()
+    }
+
+    pub(crate) fn distance(&self, bbox: &BoundingBox<N>) -> f64 {
+        self.bounds.iter().zip(bbox.bounds.iter())
+            .fold(0.0, |acc, (a, b)| acc + f64::max(0.0, f64::min(a.0 - b.1, b.0 - a.1)))
+            .sqrt()
+    }
+
+    pub(crate) fn contains(&self, bbox: &BoundingBox<N>) -> bool {
+        self.bounds.iter().zip(bbox.bounds.iter())
+            .all(|(a, b)| a.0 <= b.0 && b.1 <= a.1)
+    }
+
+    pub(crate) fn intersects(&self, bbox: &BoundingBox<N>) -> bool {
+        self.bounds.iter().zip(bbox.bounds.iter())
+            .any(|(a, b)| a.1 >= b.0 && b.1 >= a.0)
     }
 }

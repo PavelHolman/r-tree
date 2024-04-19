@@ -1,8 +1,6 @@
 use crate::bounding_box::BoundingBox;
-use crate::point::Point;
 use crate::tree::RTree;
 
-mod point;
 mod bounding_box;
 mod node;
 mod tree;
@@ -11,10 +9,10 @@ mod tree;
 fn test() {
     let mut db = RTree::new();
 
-    db.insert(Point::new([10., 20.]), "Hi!".to_owned());
-    db.insert(Point::new([5., 10.]), "Hello!".to_owned());
+    db.insert(BoundingBox::new([(10., 20.), (20., 30.)]), "Hi!".to_owned());
+    db.insert(BoundingBox::new([(5., 15.), (10., 20.)]), "Hello!".to_owned());
 
-    let bound = BoundingBox::from_bounds([(0., 40.), (0., 40.)]);
+    let bound = BoundingBox::new([(0., 40.), (0., 40.)]);
 
     let searched: Vec<_> = db.search(&bound).collect();
 
@@ -28,7 +26,7 @@ fn test() {
     println!("{:?}", db);
     println!("{:?}", removed);
 
-    assert_eq!(db.count(), 0);
+    assert_eq!(db.len(), 0);
 
     println!("{:?}", db);
 }

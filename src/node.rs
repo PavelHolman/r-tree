@@ -1,34 +1,27 @@
-use crate::bounding_box::Bound;
-use crate::point::SpatialIndex;
+use crate::bounding_box::BoundingBox;
 
 #[derive(Debug)]
-enum Node<K, V>
-    where K: SpatialIndex {
-    Node(TreeNode<K, V>),
-    Leaf((K, V)),
+enum Data<T, const N: usize> {
+    Leaf(T),
+    Inner(Vec<Node<T, N>>),
 }
 
 #[derive(Debug)]
-pub(crate) struct TreeNode<K, V>
-    where K: SpatialIndex {
-    children: Vec<Node<K, V>>,
+pub(crate) struct Node<T, const N: usize> {
+    bbox: BoundingBox<N>,
+    data: Data<T, N>,
 }
 
-impl<K, V> TreeNode<K, V>
-    where K: SpatialIndex {
-    pub(crate) fn new() -> Self { Self { children: vec![] } }
+impl<T, const N: usize> Node<T, N> {
+    const MAX_SIZE: usize = 42;
 
-    pub(crate) fn insert(&mut self, key: K, value: V) -> Option<V> {
+    pub(crate) fn new(bbox: BoundingBox<N>, data: T) -> Node<T, N> {
+        todo!()
+    }
+
+    pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T) {
         todo!();
     }
 
-    pub(crate) fn search(&self, bound: &impl Bound) -> impl Iterator<Item=&(K, V)> {
-        todo!();
-        vec![].iter()
-    }
-
-    pub(crate) fn remove(&mut self, bound: &impl Bound) -> impl Iterator<Item=(K, V)> {
-        todo!();
-        vec![].into_iter()
-    }
+    fn split() {}
 }
