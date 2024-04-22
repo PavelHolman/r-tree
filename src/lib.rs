@@ -35,13 +35,4 @@ fn test() {
     println!("{:?}", db.nearest(&bound).take(4).collect::<Vec<_>>());
     println!("{:?}", db.nearest(&bound).take(5).collect::<Vec<_>>());
     println!("{:?}", db.nearest(&bound).take(6).collect::<Vec<_>>());
-
-    // let removed: Vec<_> = db.remove(&bound).collect::<Vec<_>>();
-
-    // println!("{:?}", removed);
-    // println!("{:?}", db);
-    // 
-    // assert_eq!(db.len(), 0);
-    // 
-    // println!("{:?}", db);
 }
