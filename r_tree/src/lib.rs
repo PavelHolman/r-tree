@@ -1,5 +1,5 @@
-use crate::bounding_box::BoundingBox;
-use crate::tree::RTree;
+pub use crate::bounding_box::BoundingBox;
+pub use crate::tree::RTree;
 
 mod bounding_box;
 mod node;
