@@ -7,14 +7,18 @@ mod tree;
 
 #[test]
 fn test() {
-    let mut db = RTree::new();
+    let mut db = RTree::with_capacity(4);
 
     db.insert(BoundingBox::new([(10., 20.), (20., 30.)]), "Hi!".to_owned());
-    db.insert(BoundingBox::new([(5., 15.), (10., 20.)]), "Hello!".to_owned());
+    db.insert(BoundingBox::new([(15., 25.), (10., 20.)]), "Hello!".to_owned());
+    db.insert(BoundingBox::new([(0., 1.), (0., 0.)]), "Here!".to_owned());
+    db.insert(BoundingBox::new([(0., 40.), (0., 40.)]), "No!".to_owned());
+    db.insert(BoundingBox::new([(80., 100.), (45., 55.)]), "Yes!".to_owned());
+    db.insert(BoundingBox::new([(0., 0.), (0., 0.)]), "42!".to_owned());
 
     println!("{:?}", db);
-    
-    let bound = BoundingBox::new([(0., 40.), (0., 40.)]);
+
+    let bound = BoundingBox::new([(10., 30.), (10., 30.)]);
 
     let searched: Vec<_> = db.search(&bound).collect();
 
