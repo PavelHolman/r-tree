@@ -47,7 +47,7 @@ impl<const N: usize> BoundingBox<N> {
 
     pub(crate) fn distance(&self, bbox: &BoundingBox<N>) -> f64 {
         self.bounds.iter().zip(bbox.bounds.iter())
-            .fold(0.0, |acc, (a, b)| acc + f64::max(0.0, f64::min(a.0 - b.1, b.0 - a.1)))
+            .fold(0.0, |acc, (a, b)| acc + f64::powi(f64::max(b.0 - a.0, b.1 - a.1), 2))
             .sqrt()
     }
 
