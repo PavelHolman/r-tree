@@ -15,13 +15,59 @@ pub(crate) struct Node<T, const N: usize> {
 impl<T, const N: usize> Node<T, N> {
     const MAX_SIZE: usize = 42;
 
-    pub(crate) fn new(bbox: BoundingBox<N>, data: T) -> Node<T, N> {
-        todo!()
+    pub(crate) fn new_leaf(bbox: BoundingBox<N>, data: T) -> Self {
+        Self {
+            bbox,
+            data: Data::Leaf(data),
+        }
     }
 
-    pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T) {
-        todo!();
+    pub(crate) fn new_node(nodes: Vec<Self>) -> Self {
+        Self {
+            bbox: BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>()),
+            data: Data::Inner(nodes),
+        }
     }
 
-    fn split() {}
+    /// Insert a new bounding box with data into the tree.
+    /// The recursion returns a new node to add if the node has to be split in case of inner nodes,
+    /// or a new leaf node if it was created and needs to be added.
+    pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T) -> Option<Self> {
+        match &mut self.data {
+            Data::Leaf(leaf) => {
+                if self.bbox == bbox {
+                    *leaf = data;
+                    return None;
+                }
+                Some(Self::new_leaf(bbox, data))
+            }
+            Data::Inner(nodes) => {
+                if nodes.is_empty() {
+                    nodes.push(Self::new_leaf(bbox, data));
+                    self.bbox = bbox;
+                    return None;
+                }
+
+                let mut best_node = Self::choose_best_node(nodes, &bbox);
+
+                if let Some(node_to_add) = best_node.insert(bbox, data) {
+                    nodes.push(node_to_add);
+                    self.bbox = BoundingBox::union(&[&self.bbox, &bbox]);
+                    if nodes.len() > Self::MAX_SIZE {
+                        return Some(self.split());
+                    }
+                }
+                None
+            }
+        }
+    }
+
+    fn choose_best_node<'a>(nodes: &'a mut Vec<Self>, bbox: &BoundingBox<N>) -> &'a mut Node<T, N> {
+        // TODO: select based on area increase, not first
+        nodes.first_mut().expect("Should be non empty, because leaf was just inserted for empty")
+    }
+
+    fn split(&mut self) -> Self {
+        todo!("split the node into two -- keep something in self, move rest into other");
+    }
 }
