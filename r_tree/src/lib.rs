@@ -33,7 +33,7 @@ fn test() {
     assert_eq!(nearest.next(), Some((&p2, &m2)));
     assert_eq!(nearest.next(), Some((&p3, &m3)));
 
-    nearest;
+    drop(nearest);
     
     let (p4, m4) = (BBox::new([(0., 0.), (4., 4.)]), 4);
     let (p5, m5) = (BBox::new([(0., 0.), (5., 5.)]), 5);
