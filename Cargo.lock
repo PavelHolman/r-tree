@@ -5,3 +5,10 @@ version = 3
 [[package]]
 name = "r_tree"
 version = "0.1.0"
+
+[[package]]
+name = "r_tree-GUI"
+version = "0.1.0"
+dependencies = [
+ "r_tree",
+]
