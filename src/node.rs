@@ -106,11 +106,12 @@ impl<T, const N: usize> Node<T, N> {
         LeafIter { nodes_to_visit: vec![self] }
     }
 
-    pub(crate) fn search<'a, 'b>(&'a self, bbox: &'b BoundingBox<N>) -> impl Iterator<Item=(&BoundingBox<N>, &T)>
+    pub(crate) fn search<'a, 'b>(&'a self, bbox: &'b BoundingBox<N>) -> SearchIter<T, N>
         where 'b: 'a {
-        self
-            .iter()
-            .filter(|&(b, _)| bbox.contains(b))
+        SearchIter {
+            nodes_to_visit: vec![self],
+            bbox,
+        }
     }
 }
 
@@ -128,6 +129,36 @@ impl<'a, T, const N: usize> Iterator for LeafIter<'a, T, N> {
                 Data::Inner(nodes) => {
                     for child in nodes.iter().rev() {
                         self.nodes_to_visit.push(child);
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
+pub struct SearchIter<'a, 'b, T, const N: usize>
+    where 'b: 'a {
+    nodes_to_visit: Vec<&'a Node<T, N>>,
+    bbox: &'b BoundingBox<N>,
+}
+
+impl<'a, 'b, T, const N: usize> Iterator for SearchIter<'a, 'b, T, N> {
+    type Item = (&'a BoundingBox<N>, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(node) = self.nodes_to_visit.pop() {
+            match &node.data {
+                Data::Leaf(leaf) => {
+                    if self.bbox.contains(&node.bbox) {
+                        return Some((&node.bbox, &leaf));
+                    }
+                }
+                Data::Inner(nodes) => {
+                    for child in nodes.iter().rev() {
+                        if self.bbox.intersects(&child.bbox) {
+                            self.nodes_to_visit.push(child);
+                        }
                     }
                 }
             }
