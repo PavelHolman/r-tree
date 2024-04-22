@@ -62,9 +62,19 @@ impl<T, const N: usize> Node<T, N> {
         }
     }
 
+    /// Chooses the best node to insert the new bounding box into.
+    /// The best node is the one with the smallest increase in area after adding the bounding box.
+    /// If the area increase is the same, the node with the least amount of children is chosen.
     fn choose_best_node<'a>(nodes: &'a mut Vec<Self>, bbox: &BoundingBox<N>) -> &'a mut Node<T, N> {
-        // TODO: select based on area increase, not first
-        nodes.first_mut().expect("Should be non empty, because leaf was just inserted for empty")
+        nodes
+            .iter_mut()
+            .min_by_key(|node|
+                (BoundingBox::union(&[&node.bbox, bbox]).area() - node.bbox.area(),
+                 match &node.data {
+                     Data::Leaf(_) => 1,
+                     Data::Inner(nodes) => nodes.len(),
+                 }))
+            .expect("Should be non empty, because leaf should have been inserted for empty.")
     }
 
     fn split(&mut self) -> Self {
