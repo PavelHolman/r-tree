@@ -14,7 +14,7 @@ impl<T, const N: usize> RTree<T, N> {
     const DEFAULT_T_SIZE: usize = std::mem::size_of::<T>();
     const DEFAULT_CAPACITY: usize = Self::DISK_PAGE_SIZE / Self::DEFAULT_T_SIZE;
 
-    /// Initialize a new RTree with a default node capacity optimized for disk pages.
+    /// Initialize a new R-Tree with a default node capacity optimized for disk pages.
     pub fn new() -> RTree<T, N> {
         RTree {
             root: Node::new_node(vec![]),
@@ -23,7 +23,7 @@ impl<T, const N: usize> RTree<T, N> {
         }
     }
 
-    /// Initialize a new RTree with a custom node capacity.
+    /// Initialize a new R-Tree with a custom node capacity.
     pub fn with_capacity(capacity: usize) -> RTree<T, N> {
         RTree {
             root: Node::new_node(vec![]),
