@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BoundingBox<const N: usize> {
     bounds: [(f64, f64); N],
 }
