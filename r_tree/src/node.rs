@@ -40,8 +40,14 @@ impl<T, const N: usize> Node<T, N> {
                 let new_root = Self::new_node(vec![old_root, node]);
                 std::ptr::write(self, new_root);
             }
+            if let Data::Inner(nodes) = &mut self.data {
+                for node in nodes {
+                    node.shrink();
+                }
+            }
         }
 
+        self.shrink();
         old
     }
 
@@ -76,7 +82,7 @@ impl<T, const N: usize> Node<T, N> {
                     self.bbox = BoundingBox::union(&[&self.bbox, &bbox]);
                     if nodes.len() > capacity {
                         let other_nodes = Self::split_nodes(nodes);
-                        self.bbox = BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>());
+                        self.shrink();
                         return (Some(Self::new_node(other_nodes)), old);
                     }
                 }
@@ -103,6 +109,15 @@ impl<T, const N: usize> Node<T, N> {
     fn split_nodes(nodes: &mut Vec<Self>) -> Vec<Self> {
         // TODO: Better splitting policy
         nodes.split_off(nodes.len() / 2)
+    }
+
+    fn shrink(&mut self) {
+        match &mut self.data {
+            Data::Leaf(_) => {}
+            Data::Inner(nodes) => {
+                self.bbox = BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>());
+            }
+        }
     }
 
     pub(crate) fn iter(&self) -> LeafIter<T, N> {
