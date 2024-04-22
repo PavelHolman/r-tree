@@ -30,7 +30,16 @@ impl<T, const N: usize> Node<T, N> {
     /// Insert a new bounding box with data into the tree.
     /// Returns the old value if it was replaced.
     pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize) -> Option<T> {
-        self.insert_impl(bbox, data, capacity).1
+        let (split, old) = self.insert_impl(bbox, data, capacity);
+        if let Some(node) = split {
+            unsafe {
+                let old_root = std::ptr::read(self);
+                let new_root = Self::new_node(vec![old_root, node]);
+                std::ptr::write(self, new_root);
+            }
+        }
+
+        old
     }
 
     /// Insert a new bounding box with data into the tree.
