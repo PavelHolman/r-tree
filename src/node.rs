@@ -54,7 +54,9 @@ impl<T, const N: usize> Node<T, N> {
                     nodes.push(node_to_add);
                     self.bbox = BoundingBox::union(&[&self.bbox, &bbox]);
                     if nodes.len() > Self::MAX_SIZE {
-                        return Some(self.split());
+                        let other_nodes = Self::split_nodes(nodes);
+                        self.bbox = BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>());
+                        return Some(Self::new_node(other_nodes));
                     }
                 }
                 None
@@ -77,7 +79,8 @@ impl<T, const N: usize> Node<T, N> {
             .expect("Should be non empty, because leaf should have been inserted for empty.")
     }
 
-    fn split(&mut self) -> Self {
-        todo!("split the node into two -- keep something in self, move rest into other");
+    fn split_nodes(nodes: &mut Vec<Self>) -> Vec<Self> {
+        // TODO: Better splitting policy
+        nodes.split_off(nodes.len() / 2)
     }
 }
