@@ -92,4 +92,37 @@ impl<T, const N: usize> Node<T, N> {
         // TODO: Better splitting policy
         nodes.split_off(nodes.len() / 2)
     }
+
+    pub(crate) fn iter(&self) -> LeafIter<T, N> {
+        LeafIter { nodes_to_visit: vec![self] }
+    }
+
+    pub(crate) fn search<'a, 'b>(&'a self, bbox: &'b BoundingBox<N>) -> impl Iterator<Item=(&BoundingBox<N>, &T)>
+        where 'b: 'a {
+        self
+            .iter()
+            .filter(|&(b, _)| bbox.contains(b))
+    }
+}
+
+pub struct LeafIter<'a, T, const N: usize> {
+    nodes_to_visit: Vec<&'a Node<T, N>>,
+}
+
+impl<'a, T, const N: usize> Iterator for LeafIter<'a, T, N> {
+    type Item = (&'a BoundingBox<N>, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(node) = self.nodes_to_visit.pop() {
+            match &node.data {
+                Data::Leaf(leaf) => return Some((&node.bbox, &leaf)),
+                Data::Inner(nodes) => {
+                    for child in nodes.iter().rev() {
+                        self.nodes_to_visit.push(child);
+                    }
+                }
+            }
+        }
+        None
+    }
 }

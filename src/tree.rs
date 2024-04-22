@@ -40,9 +40,13 @@ impl<T, const N: usize> RTree<T, N> {
         }
     }
 
-    pub fn search(&mut self, bbox: &BoundingBox<N>) -> impl Iterator<Item=&(&BoundingBox<N>, &T)> {
-        todo!();
-        vec![].iter()
+    pub fn iter(&self) -> impl Iterator<Item=(&BoundingBox<N>, &T)> {
+        self.root.iter()
+    }
+
+    pub fn search<'a, 'b>(&'a mut self, bbox: &'b BoundingBox<N>) -> impl Iterator<Item=(&'a BoundingBox<N>, &'a T)>
+        where 'b : 'a {
+        self.root.search(bbox)
     }
 
     pub fn remove(&mut self, bbox: &BoundingBox<N>) -> impl Iterator<Item=&(BoundingBox<N>, T)> {
