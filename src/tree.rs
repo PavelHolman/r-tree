@@ -4,15 +4,25 @@ use crate::node::Node;
 #[derive(Debug)]
 pub struct RTree<T, const N: usize> {
     root: Node<T, N>,
-    max_size: usize,
+    capacity: usize,
     length: usize,
 }
 
 impl<T, const N: usize> RTree<T, N> {
+    const DEFAULT_CAPACITY: usize = 42;
+
     pub fn new() -> RTree<T, N> {
         RTree {
             root: Node::new_node(vec![]),
-            max_size: 20,
+            capacity: Self::DEFAULT_CAPACITY,
+            length: 0,
+        }
+    }
+
+    pub fn with_capacity(capacity: usize) -> RTree<T, N> {
+        RTree {
+            root: Node::new_node(vec![]),
+            capacity,
             length: 0,
         }
     }
