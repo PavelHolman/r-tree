@@ -3,7 +3,7 @@ use crate::node::Node;
 
 #[derive(Debug)]
 pub struct RTree<T, const N: usize> {
-    root: Option<Node<T, N>>,
+    root: Node<T, N>,
     max_size: usize,
     length: usize,
 }
@@ -11,7 +11,7 @@ pub struct RTree<T, const N: usize> {
 impl<T, const N: usize> RTree<T, N> {
     pub fn new() -> RTree<T, N> {
         RTree {
-            root: None,
+            root: Node::new_node(vec![]),
             max_size: 20,
             length: 0,
         }
@@ -22,11 +22,8 @@ impl<T, const N: usize> RTree<T, N> {
     }
 
     pub fn insert(&mut self, bbox: BoundingBox<N>, data: T) {
-        match &mut self.root {
-            Some(root) => { root.insert(bbox, data); }
-            None => { self.root = Some(Node::new(bbox, data)); }
-        }
-
+        self.root.insert(bbox, data);
+        // TODO: length should not be increased if only data of existing bbox were overwritten.
         self.length += 1;
     }
 
