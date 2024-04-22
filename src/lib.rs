@@ -12,19 +12,21 @@ fn test() {
     db.insert(BoundingBox::new([(10., 20.), (20., 30.)]), "Hi!".to_owned());
     db.insert(BoundingBox::new([(5., 15.), (10., 20.)]), "Hello!".to_owned());
 
+    println!("{:?}", db);
+    
     let bound = BoundingBox::new([(0., 40.), (0., 40.)]);
 
     let searched: Vec<_> = db.search(&bound).collect();
 
     assert_eq!(searched.len(), 2);
 
-    println!("{:?}", db);
     println!("{:?}", searched);
+    println!("{:?}", db);
 
     let removed: Vec<_> = db.remove(&bound).collect::<Vec<_>>();
 
-    println!("{:?}", db);
     println!("{:?}", removed);
+    println!("{:?}", db);
 
     assert_eq!(db.len(), 0);
 
