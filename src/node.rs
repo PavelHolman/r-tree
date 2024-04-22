@@ -13,8 +13,6 @@ pub(crate) struct Node<T, const N: usize> {
 }
 
 impl<T, const N: usize> Node<T, N> {
-    const MAX_SIZE: usize = 42;
-
     pub(crate) fn new_leaf(bbox: BoundingBox<N>, data: T) -> Self {
         Self {
             bbox,
@@ -30,36 +28,47 @@ impl<T, const N: usize> Node<T, N> {
     }
 
     /// Insert a new bounding box with data into the tree.
-    /// The recursion returns a new node to add if the node has to be split in case of inner nodes,
-    /// or a new leaf node if it was created and needs to be added.
-    pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T) -> Option<Self> {
+    /// Returns the old value if it was replaced.
+    pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize) -> Option<T> {
+        self.insert_impl(bbox, data, capacity).1
+    }
+
+    /// Insert a new bounding box with data into the tree.
+    /// The recursion returns:
+    /// - a new node to add if the node has to be split in case of inner nodes,
+    /// - or a new leaf node if it was created and needs to be added
+    ///
+    /// and
+    /// - an old value, if it was replaced.
+    fn insert_impl(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize) -> (Option<Self>, Option<T>) {
         match &mut self.data {
             Data::Leaf(leaf) => {
                 if self.bbox == bbox {
-                    *leaf = data;
-                    return None;
+                    return (None, Some(std::mem::replace(leaf, data)));
                 }
-                Some(Self::new_leaf(bbox, data))
+                (Some(Self::new_leaf(bbox, data)), None)
             }
             Data::Inner(nodes) => {
                 if nodes.is_empty() {
                     nodes.push(Self::new_leaf(bbox, data));
                     self.bbox = bbox;
-                    return None;
+                    return (None, None);
                 }
 
-                let mut best_node = Self::choose_best_node(nodes, &bbox);
+                let best_node = Self::choose_best_node(nodes, &bbox);
 
-                if let Some(node_to_add) = best_node.insert(bbox, data) {
+                let (node_to_add, old) = best_node.insert_impl(bbox, data, capacity);
+
+                if let Some(node_to_add) = node_to_add {
                     nodes.push(node_to_add);
                     self.bbox = BoundingBox::union(&[&self.bbox, &bbox]);
-                    if nodes.len() > Self::MAX_SIZE {
+                    if nodes.len() > capacity {
                         let other_nodes = Self::split_nodes(nodes);
                         self.bbox = BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>());
-                        return Some(Self::new_node(other_nodes));
+                        return (Some(Self::new_node(other_nodes)), old);
                     }
                 }
-                None
+                (None, old)
             }
         }
     }

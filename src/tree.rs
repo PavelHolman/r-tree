@@ -31,10 +31,13 @@ impl<T, const N: usize> RTree<T, N> {
         self.length
     }
 
-    pub fn insert(&mut self, bbox: BoundingBox<N>, data: T) {
-        self.root.insert(bbox, data);
-        // TODO: length should not be increased if only data of existing bbox were overwritten.
-        self.length += 1;
+    pub fn insert(&mut self, bbox: BoundingBox<N>, data: T) -> Option<T> {
+        if let Some(old) = self.root.insert(bbox, data, self.capacity) {
+            Some(old)
+        } else {
+            self.length += 1;
+            None
+        }
     }
 
     pub fn search(&mut self, bbox: &BoundingBox<N>) -> impl Iterator<Item=&(&BoundingBox<N>, &T)> {
