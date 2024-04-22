@@ -1,3 +1,6 @@
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+
 use crate::bounding_box::BoundingBox;
 
 #[derive(Debug)]
@@ -113,6 +116,16 @@ impl<T, const N: usize> Node<T, N> {
             bbox,
         }
     }
+
+    pub(crate) fn nearest<'a>(&'a self, bbox: &'a BoundingBox<N>) -> NearestNeighborIter<T, N> {
+        NearestNeighborIter {
+            nodes_to_visit: BinaryHeap::from_iter(
+                vec![NearestNeighborNode {
+                    node: self,
+                    bbox,
+                }]),
+        }
+    }
 }
 
 pub struct LeafIter<'a, T, const N: usize> {
@@ -159,6 +172,56 @@ impl<'a, 'b, T, const N: usize> Iterator for SearchIter<'a, 'b, T, N> {
                         if self.bbox.intersects(&child.bbox) {
                             self.nodes_to_visit.push(child);
                         }
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
+struct NearestNeighborNode<'a, T, const N: usize> {
+    node: &'a Node<T, N>,
+    bbox: &'a BoundingBox<N>,
+}
+
+impl<'a, T, const N: usize> Eq for NearestNeighborNode<'a, T, N> {}
+
+impl<'a, T, const N: usize> PartialEq<Self> for NearestNeighborNode<'a, T, N> {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl<'a, T, const N: usize> Ord for NearestNeighborNode<'a, T, N> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.bbox.distance(&self.node.bbox)
+            .partial_cmp(&other.bbox.distance(&other.node.bbox))
+            .unwrap_or(Ordering::Equal)
+            .reverse()
+    }
+}
+
+impl<'a, T, const N: usize> PartialOrd<Self> for NearestNeighborNode<'a, T, N> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+pub struct NearestNeighborIter<'a, T, const N: usize> {
+    nodes_to_visit: BinaryHeap<NearestNeighborNode<'a, T, N>>,
+}
+
+impl<'a, T, const N: usize> Iterator for NearestNeighborIter<'a, T, N> {
+    type Item = (&'a BoundingBox<N>, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(node) = self.nodes_to_visit.pop() {
+            match &node.node.data {
+                Data::Leaf(leaf) => return Some((&node.node.bbox, &leaf)),
+                Data::Inner(nodes) => {
+                    for child in nodes.iter() {
+                        self.nodes_to_visit.push(NearestNeighborNode { node: child, bbox: &child.bbox });
                     }
                 }
             }

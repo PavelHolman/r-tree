@@ -11,7 +11,7 @@ fn test() {
 
     db.insert(BoundingBox::new([(10., 20.), (20., 30.)]), "Hi!".to_owned());
     db.insert(BoundingBox::new([(15., 25.), (10., 20.)]), "Hello!".to_owned());
-    db.insert(BoundingBox::new([(0., 1.), (0., 0.)]), "Here!".to_owned());
+    db.insert(BoundingBox::new([(0., 15.), (0., 15.)]), "Here!".to_owned());
     db.insert(BoundingBox::new([(0., 40.), (0., 40.)]), "No!".to_owned());
     db.insert(BoundingBox::new([(80., 100.), (45., 55.)]), "Yes!".to_owned());
     db.insert(BoundingBox::new([(0., 0.), (0., 0.)]), "42!".to_owned());
@@ -27,12 +27,21 @@ fn test() {
     println!("{:?}", searched);
     println!("{:?}", db);
 
-    let removed: Vec<_> = db.remove(&bound).collect::<Vec<_>>();
+    println!("{:?}", db.iter().collect::<Vec<_>>());
 
-    println!("{:?}", removed);
-    println!("{:?}", db);
+    println!("{:?}", db.nearest(&bound).take(1).collect::<Vec<_>>());
+    println!("{:?}", db.nearest(&bound).take(2).collect::<Vec<_>>());
+    println!("{:?}", db.nearest(&bound).take(3).collect::<Vec<_>>());
+    println!("{:?}", db.nearest(&bound).take(4).collect::<Vec<_>>());
+    println!("{:?}", db.nearest(&bound).take(5).collect::<Vec<_>>());
+    println!("{:?}", db.nearest(&bound).take(6).collect::<Vec<_>>());
 
-    assert_eq!(db.len(), 0);
+    // let removed: Vec<_> = db.remove(&bound).collect::<Vec<_>>();
 
-    println!("{:?}", db);
+    // println!("{:?}", removed);
+    // println!("{:?}", db);
+    // 
+    // assert_eq!(db.len(), 0);
+    // 
+    // println!("{:?}", db);
 }

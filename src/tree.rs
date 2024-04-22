@@ -52,8 +52,7 @@ impl<T, const N: usize> RTree<T, N> {
         self.root.search(bbox)
     }
 
-    pub fn remove(&mut self, bbox: &BoundingBox<N>) -> impl Iterator<Item=&(BoundingBox<N>, T)> {
-        todo!();
-        vec![].iter()
+    pub fn nearest<'a>(&'a self, bbox: &'a BoundingBox<N>) -> impl Iterator<Item=(&BoundingBox<N>, &T)> {
+        self.root.nearest(bbox)
     }
 }
