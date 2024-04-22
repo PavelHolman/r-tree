@@ -44,7 +44,7 @@ impl<T, const N: usize> RTree<T, N> {
         self.root.iter()
     }
 
-    pub fn search<'a, 'b>(&'a mut self, bbox: &'b BoundingBox<N>) -> impl Iterator<Item=(&'a BoundingBox<N>, &'a T)>
+    pub fn search<'a, 'b>(&'a self, bbox: &'b BoundingBox<N>) -> impl Iterator<Item=(&'a BoundingBox<N>, &'a T)>
         where 'b : 'a {
         self.root.search(bbox)
     }
