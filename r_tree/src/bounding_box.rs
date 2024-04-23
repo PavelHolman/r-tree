@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BoundingBox<const N: usize> {
-    bounds: [(f64, f64); N],
+    pub bounds: [(f64, f64); N],
 }
 
 impl<const N: usize> BoundingBox<N> {
