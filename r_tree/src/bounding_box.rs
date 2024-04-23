@@ -32,10 +32,11 @@ pub struct BoundingBox<const N: usize> {
 }
 
 impl<const N: usize> BoundingBox<N> {
-    const DIMENSION_CHECK: () = assert!(N > 0, "Bounding box dimension has to be positive!");
-
     /// Create a new bounding box from the given points.
     pub fn from_points(min: [u64; N], max: [u64; N]) -> Self {
+        if N <= 0 {
+            panic!("Bounding box dimension has to be positive!");
+        }
         Self {
             bounds: min.iter().zip(max.iter())
                 .map(|(min, max)| Interval::new(*min, *max))
@@ -47,6 +48,9 @@ impl<const N: usize> BoundingBox<N> {
 
     /// Create a new bounding box from the given intervals.
     pub fn from_intervals(intervals: [Interval; N]) -> Self {
+        if N <= 0 {
+            panic!("Bounding box dimension has to be positive!");
+        }
         Self { bounds: intervals }
     }
 
