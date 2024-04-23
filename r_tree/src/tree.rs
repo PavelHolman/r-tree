@@ -1,6 +1,10 @@
 use crate::bounding_box::BoundingBox;
 use crate::node::Node;
 
+/// R-Tree data structure.
+/// Provides insertion, search and nearest neighbor search.
+/// These operation are logarithmic in the number of elements in the tree.
+/// The tree is generic over the data type T and the compile time dimension N of the bounding boxes.
 #[derive(Debug)]
 pub struct RTree<T, const N: usize> {
     root: Node<T, N>,

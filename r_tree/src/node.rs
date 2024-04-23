@@ -140,6 +140,7 @@ impl<T, const N: usize> Node<T, N> {
     }
 }
 
+/// Iterator over all leaf nodes in the tree.
 pub struct LeafIter<'a, T, const N: usize> {
     nodes_to_visit: Vec<&'a Node<T, N>>,
 }
@@ -162,6 +163,7 @@ impl<'a, T, const N: usize> Iterator for LeafIter<'a, T, N> {
     }
 }
 
+/// Iterator over all leaf nodes in the tree that are contained within the given bounding box.
 pub struct SearchIter<'a, 'b, T, const N: usize>
     where 'b: 'a {
     nodes_to_visit: Vec<&'a Node<T, N>>,
@@ -197,6 +199,7 @@ struct NearestNeighborNode<'a, T, const N: usize> {
     node: &'a Node<T, N>,
 }
 
+/// Iterator over all leaf nodes in the tree in order of distance to the given bounding box.
 pub struct NearestNeighborIter<'a, T, const N: usize> {
     nodes_to_visit: BinaryHeap<NearestNeighborNode<'a, T, N>>,
     bbox: &'a BoundingBox<N>,
