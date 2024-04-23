@@ -1,4 +1,4 @@
-use egui::Vec2;
+use egui::{Slider, Vec2};
 use r_tree::{BoundingBox, RTree};
 
 use crate::draw_tree;
@@ -6,7 +6,8 @@ use crate::draw_tree;
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct TemplateApp {
-    label: String,
+    min: [u64; 2],
+    max: [u64; 2],
 
     #[serde(skip)]
     db: RTree<i32, 2>,
@@ -15,8 +16,8 @@ pub struct TemplateApp {
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            // Example stuff:
-            label: "Hello World!".to_owned(),
+            min: [0, 0],
+            max: [100, 100],
             db: example_db(),
         }
     }
@@ -49,38 +50,18 @@ impl eframe::App for TemplateApp {
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
-
-            egui::menu::bar(ui, |ui| {
-                // NOTE: no File->Quit on web pages!
-                let is_web = cfg!(target_arch = "wasm32");
-                if !is_web {
-                    ui.menu_button("File", |ui| {
-                        if ui.button("Quit").clicked() {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
-                    });
-                    ui.add_space(16.0);
-                }
-
-                egui::widgets::global_dark_light_mode_buttons(ui);
-            });
-        });
-
         egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
             ui.heading("R-Tree");
 
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(&mut self.label);
-            });
+            ui.add(Slider::new(&mut self.min[0], 0..=200).text("min x"));
+            ui.add(Slider::new(&mut self.min[1], 0..=200).text("min y"));
+            ui.add(Slider::new(&mut self.max[0], 100..=300).text("max x"));
+            ui.add(Slider::new(&mut self.max[1], 100..=300).text("max y"));
 
-            // ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-            // if ui.button("Increment").clicked() {
-            //     self.value += 1.0;
-            // }
+            if ui.button("Insert").clicked() {
+                let bbox = BoundingBox::from_points(self.min, self.max);
+                self.db.insert(bbox, 420);
+            }
 
             ui.separator();
 
@@ -95,11 +76,6 @@ impl eframe::App for TemplateApp {
             );
 
             ui.separator();
-
-            // ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-            //     powered_by_egui_and_eframe(ui);
-            //     egui::warn_if_debug_build(ui);
-            // });
         });
     }
 }
