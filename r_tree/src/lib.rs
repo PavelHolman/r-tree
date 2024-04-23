@@ -1,4 +1,4 @@
-pub use crate::bounding_box::BoundingBox;
+pub use crate::bounding_box::{BoundingBox, Interval};
 pub use crate::node::SplitPolicy;
 pub use crate::tree::RTree;
 
