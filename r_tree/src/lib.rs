@@ -10,8 +10,8 @@ fn example_usage() {
     // Create new R-Tree with specified capacity or use RTree::new(); for optimal capacity for paging
     let mut db = RTree::with_capacity(4);
 
-    db.insert(BoundingBox::new([(0., 10.), (0., 5.)]), "Hi!".to_owned());
-    db.insert(BoundingBox::new([(10., 20.), (0., 5.)]), "Hello!".to_owned());
+    db.insert(BoundingBox::new([(0, 10), (0, 5)]), "Hi!".to_owned());
+    db.insert(BoundingBox::new([(10, 20), (0, 5)]), "Hello!".to_owned());
 
     // Get and collect all tree entries
     let all_entries = db.iter().collect::<Vec<_>>();
@@ -19,13 +19,13 @@ fn example_usage() {
     println!("[Hi!, Hello!] : {:?}", all_entries);
 
     // Get and collect all entries in the bound
-    let bound = BoundingBox::new([(0., 20.), (0., 20.)]);
+    let bound = BoundingBox::new([(0, 20), (0, 20)]);
     let entries_in_bound = db.search(&bound).collect::<Vec<_>>();
     println!("Entries in bound:");
     println!("[Hi!, Hello!] : {:?}", entries_in_bound);
 
     // Get all entries in order of distance to the point
-    let point = BoundingBox::new([(0., 5.), (0., 5.)]);
+    let point = BoundingBox::new([(0, 5), (0, 5)]);
     let mut nearest = db.nearest(&point);
 
     println!("Nearest iteration:");
@@ -46,17 +46,17 @@ fn test() {
 
     type BBox = BoundingBox<2>;
 
-    let (p0, m0) = (BBox::new([(0., 0.), (0., 0.)]), 0);
-    let (p1, m1) = (BBox::new([(0., 0.), (1., 1.)]), 1);
-    let (p2, m2) = (BBox::new([(0., 0.), (2., 2.)]), 2);
-    let (p3, m3) = (BBox::new([(0., 0.), (3., 3.)]), 3);
+    let (p0, m0) = (BBox::new([(0, 0), (0, 0)]), 0);
+    let (p1, m1) = (BBox::new([(0, 0), (1, 1)]), 1);
+    let (p2, m2) = (BBox::new([(0, 0), (2, 2)]), 2);
+    let (p3, m3) = (BBox::new([(0, 0), (3, 3)]), 3);
 
     db.insert(p0, m0);
     db.insert(p1, m1);
     db.insert(p2, m2);
     db.insert(p3, m3);
 
-    let bound = BBox::new([(0., 0.), (0., 3.)]);
+    let bound = BBox::new([(0, 0), (0, 3)]);
 
     assert_eq!(db.iter().collect::<Vec<_>>(), vec![(&p0, &m0), (&p1, &m1), (&p2, &m2), (&p3, &m3)]);
     assert_eq!(db.search(&bound).collect::<Vec<_>>(), vec![(&p0, &m0), (&p1, &m1), (&p2, &m2), (&p3, &m3)]);
@@ -70,12 +70,12 @@ fn test() {
 
     drop(nearest);
 
-    let (p4, m4) = (BBox::new([(0., 0.), (4., 4.)]), 4);
-    let (p5, m5) = (BBox::new([(0., 0.), (5., 5.)]), 5);
-    let (p6, m6) = (BBox::new([(0., 0.), (6., 6.)]), 6);
-    let (p7, m7) = (BBox::new([(0., 0.), (7., 7.)]), 7);
-    let (p8, m8) = (BBox::new([(0., 0.), (8., 8.)]), 8);
-    let (p9, m9) = (BBox::new([(0., 0.), (9., 9.)]), 9);
+    let (p4, m4) = (BBox::new([(0, 0), (4, 4)]), 4);
+    let (p5, m5) = (BBox::new([(0, 0), (5, 5)]), 5);
+    let (p6, m6) = (BBox::new([(0, 0), (6, 6)]), 6);
+    let (p7, m7) = (BBox::new([(0, 0), (7, 7)]), 7);
+    let (p8, m8) = (BBox::new([(0, 0), (8, 8)]), 8);
+    let (p9, m9) = (BBox::new([(0, 0), (9, 9)]), 9);
 
     db.insert(p4, m4);
     db.insert(p5, m5);
