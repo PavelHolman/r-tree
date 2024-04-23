@@ -13,11 +13,11 @@ impl Interval {
         }
         Self { min, max }
     }
-    
+
     pub fn min(&self) -> u64 {
         self.min
     }
-    
+
     pub fn max(&self) -> u64 {
         self.max
     }
@@ -35,10 +35,6 @@ impl<const N: usize> BoundingBox<N> {
     const DIMENSION_CHECK: () = assert!(N > 0, "Bounding box dimension has to be positive!");
 
     pub fn from_points(min: [u64; N], max: [u64; N]) -> Self {
-        if min.iter().zip(max.iter()).any(|(a, b)| a > b) {
-            panic!("Bounding box min has to be less than max.");
-        }
-
         Self {
             bounds: min.iter().zip(max.iter())
                 .map(|(min, max)| Interval::new(*min, *max))
