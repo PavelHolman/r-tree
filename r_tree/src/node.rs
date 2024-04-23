@@ -141,16 +141,8 @@ impl<T, const N: usize> Node<T, N> {
                 todo!()
             }
             SplitPolicy::BruteForce => {
-                let area_of_nodes = |nodes: Vec<&Node<T, N>>| {
-                    BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>()).area()
-                };
-
-                let total_area = |left, right| {
-                    area_of_nodes(left) + area_of_nodes(right)
-                };
-
                 let (mut permutation, k) =
-                    (1..nodes.len())
+                    (1..(nodes.len() - 1))
                         .flat_map(|k| {
                             (0..nodes.len())
                                 .permutations(nodes.len())
@@ -158,9 +150,12 @@ impl<T, const N: usize> Node<T, N> {
                         })
                         .min_by_key(|(permutation, k)| {
                             let (left_indices, right_indices) = permutation.split_at(*k);
-                            let left = left_indices.iter().map(|&i| &nodes[i]).collect::<Vec<_>>();
-                            let right = right_indices.iter().map(|&i| &nodes[i]).collect::<Vec<_>>();
-                            total_area(left, right)
+                            let left = left_indices.iter().map(|&i| &nodes[i]);
+                            let right = right_indices.iter().map(|&i| &nodes[i]);
+
+                            let left_area = BoundingBox::union(&left.map(|node| &node.bbox).collect_vec()).area();
+                            let right_area = BoundingBox::union(&right.map(|node| &node.bbox).collect_vec()).area();
+                            left_area + right_area
                         })
                         .expect("Should be non empty, because splitting node without at least 2 elements makes no sense.");
 
