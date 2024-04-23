@@ -95,7 +95,9 @@ impl<const N: usize> BoundingBox<N> {
     /// Get the distance to the other bounding box.
     pub fn distance(&self, bbox: &BoundingBox<N>) -> f64 {
         (self.bounds.iter().zip(bbox.bounds.iter())
-            .fold(0, |acc, (a, b)| acc + u64::pow(u64::max(b.min - a.min, b.max - a.max), 2)) as f64)
+            .fold(0, |acc, (a, b)|
+                acc + u64::pow(u64::max(
+                    b.min.max(a.min) - b.min.min(a.min), b.max.max(a.max) - a.max.min(b.max)), 2)) as f64)
             .sqrt()
     }
 
