@@ -2,5 +2,5 @@
 
 members = [
     "r_tree",
-    "r_tree-GUI",
+    "r_tree_gui",
 ]
