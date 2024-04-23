@@ -138,7 +138,28 @@ impl<T, const N: usize> Node<T, N> {
                 nodes.split_off(nodes.len() / 2)
             }
             SplitPolicy::Greedy => {
-                todo!()
+                let ((i, j), _) = nodes.iter().enumerate()
+                    .flat_map(|(i, l)| nodes.iter().enumerate().skip(i + 1)
+                        .map(move |(j, r)| ((i, j), l.bbox.distance(&r.bbox))))
+                    .min_by(|(_, d1), (_, d2)| d1.total_cmp(d2))
+                    .expect("Should be non empty, because splitting node without at least 2 elements makes no sense.");
+
+                let mut left = vec![nodes.swap_remove(usize::max(i, j))];
+                let mut right = vec![nodes.swap_remove(usize::min(i, j))];
+
+                for i in (0..nodes.len()).rev() {
+                    let left_distance = left[0].bbox.distance(&nodes[i].bbox);
+                    let right_distance = right[0].bbox.distance(&nodes[i].bbox);
+
+                    if left_distance < right_distance {
+                        left.push(nodes.swap_remove(i));
+                    } else {
+                        right.push(nodes.swap_remove(i));
+                    }
+                }
+
+                *nodes = left;
+                right
             }
             SplitPolicy::BruteForce => {
                 let (mut permutation, k) =
