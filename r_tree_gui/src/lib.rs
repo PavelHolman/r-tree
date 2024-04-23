@@ -58,14 +58,14 @@ pub(crate) fn draw_tree<T>(
     painter: Painter,
     viz_bounding_box: Rect,
     tree: &RTree<T, 2>,
-    highlighted: Option<&BoundingBox<2>>,
+    highlighted: Option<BoundingBox<2>>,
 ) {
     let painter = BoundedPainter::new(painter, viz_bounding_box);
 
     for (bbox, _data) in tree.iter() {
         let rect = to_rect(bbox);
         match highlighted {
-            Some(hbox) if hbox == bbox => painter.rect(
+            Some(hbox) if hbox == *bbox => painter.rect(
                 rect,
                 Rounding::ZERO,
                 Stroke::new(HIGHLIGHTED_STROKE_WIDTH, Color32::GREEN),

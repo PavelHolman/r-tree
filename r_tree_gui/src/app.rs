@@ -10,6 +10,9 @@ pub struct TemplateApp {
     max: [u64; 2],
 
     #[serde(skip)]
+    last_bbox: Option<BoundingBox<2>>,
+
+    #[serde(skip)]
     db: RTree<i32, 2>,
 }
 
@@ -18,6 +21,7 @@ impl Default for TemplateApp {
         Self {
             min: [0, 0],
             max: [100, 100],
+            last_bbox: None,
             db: example_db(),
         }
     }
@@ -55,11 +59,15 @@ impl eframe::App for TemplateApp {
 
             ui.add(Slider::new(&mut self.min[0], 0..=200).text("min x"));
             ui.add(Slider::new(&mut self.min[1], 0..=200).text("min y"));
+
+            ui.separator();
+
             ui.add(Slider::new(&mut self.max[0], 100..=300).text("max x"));
             ui.add(Slider::new(&mut self.max[1], 100..=300).text("max y"));
 
             if ui.button("Insert").clicked() {
                 let bbox = BoundingBox::from_points(self.min, self.max);
+                self.last_bbox = Some(bbox);
                 self.db.insert(bbox, 420);
             }
 
@@ -68,12 +76,7 @@ impl eframe::App for TemplateApp {
             let (response, painter) =
                 ui.allocate_painter(Vec2::new(1000.0, 700.0), egui::Sense::click());
             let viz_bounding_box = response.rect;
-            draw_tree(
-                painter,
-                viz_bounding_box,
-                &self.db,
-                Some(self.db.iter().last().unwrap().0),
-            );
+            draw_tree(painter, viz_bounding_box, &self.db, self.last_bbox);
 
             ui.separator();
         });
