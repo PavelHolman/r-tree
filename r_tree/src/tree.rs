@@ -9,10 +9,9 @@ pub struct RTree<T, const N: usize> {
 }
 
 impl<T, const N: usize> RTree<T, N> {
-    const DISK_PAGE_SIZE_IN_BYTES: usize = 4096;
-    const DISK_PAGE_SIZE: usize = 8 * Self::DISK_PAGE_SIZE_IN_BYTES;
-    const DEFAULT_T_SIZE: usize = std::mem::size_of::<T>();
-    const DEFAULT_CAPACITY: usize = Self::DISK_PAGE_SIZE / Self::DEFAULT_T_SIZE;
+    const DISK_PAGE_SIZE: usize = 4096;
+    const NODE_SIZE: usize = std::mem::size_of::<Node<T, N>>();
+    const DEFAULT_CAPACITY: usize = Self::DISK_PAGE_SIZE / Self::NODE_SIZE;
 
     /// Initialize a new R-Tree with a default node capacity optimized for disk pages.
     pub fn new() -> RTree<T, N> {
