@@ -6,13 +6,11 @@
 fn main() -> eframe::Result<()> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
-    let window_size = [1600.0, 800.0];
-    let min_window_size = window_size.clone();
+    let window_size = [400.0, 300.0];
 
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size(window_size)
-            .with_min_inner_size(min_window_size)
             .with_icon(
                 // NOTE: Adding an icon is optional
                 eframe::icon_data::from_png_bytes(&include_bytes!("../assets/icon-256.png")[..])
