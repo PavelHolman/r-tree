@@ -15,6 +15,20 @@ pub(crate) struct Node<T, const N: usize> {
     data: Data<T, N>,
 }
 
+/// Defines the policy for splitting nodes when they reach the maximum capacity.
+/// The policy can be one of:
+/// - Half: Split the nodes in half in order of insertion.
+/// - Random: Split the nodes randomly.
+/// - Greedy: Split the two furthest nodes and the rest is added to one of them based on area increase.
+/// - BruteForce: Split the nodes such that the area is minimal by trying all possibilities.
+#[derive(Debug)]
+pub enum SplitPolicy {
+    Half,
+    Random,
+    Greedy,
+    BruteForce,
+}
+
 impl<T, const N: usize> Node<T, N> {
     pub(crate) fn new_leaf(bbox: BoundingBox<N>, data: T) -> Self {
         Self {
@@ -32,8 +46,10 @@ impl<T, const N: usize> Node<T, N> {
 
     /// Insert a new bounding box with data into the tree.
     /// Returns the old value if it was replaced.
-    pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize) -> Option<T> {
-        let (split, old) = self.insert_impl(bbox, data, capacity);
+    pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize, policy: &SplitPolicy) -> Option<T> {
+        // TODO: Wrap implementation in a struct with all the parameters to avoid passing them around.
+        // The root node could also be treated separately by adding Root kind to Data and avoid the unsafe block.
+        let (split, old) = self.insert_impl(bbox, data, capacity, &policy);
         if let Some(node) = split {
             unsafe {
                 let old_root = std::ptr::read(self);
@@ -58,7 +74,7 @@ impl<T, const N: usize> Node<T, N> {
     ///
     /// and
     /// - an old value, if it was replaced.
-    fn insert_impl(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize) -> (Option<Self>, Option<T>) {
+    fn insert_impl(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize, policy: &SplitPolicy) -> (Option<Self>, Option<T>) {
         match &mut self.data {
             Data::Leaf(leaf) => {
                 if self.bbox == bbox {
@@ -75,13 +91,13 @@ impl<T, const N: usize> Node<T, N> {
 
                 let best_node = Self::choose_best_node(nodes, &bbox);
 
-                let (node_to_add, old) = best_node.insert_impl(bbox, data, capacity);
+                let (node_to_add, old) = best_node.insert_impl(bbox, data, capacity, &policy);
 
                 if let Some(node_to_add) = node_to_add {
                     nodes.push(node_to_add);
                     self.bbox = BoundingBox::union(&[&self.bbox, &bbox]);
                     if nodes.len() > capacity {
-                        let other_nodes = Self::split_nodes(nodes);
+                        let other_nodes = Self::split_nodes(nodes, &policy);
                         self.shrink();
                         return (Some(Self::new_node(other_nodes)), old);
                     }
@@ -106,9 +122,25 @@ impl<T, const N: usize> Node<T, N> {
             .expect("Should be non empty, because leaf should have been inserted for empty.")
     }
 
-    fn split_nodes(nodes: &mut Vec<Self>) -> Vec<Self> {
-        // TODO: Better splitting policy
-        nodes.split_off(nodes.len() / 2)
+    fn split_nodes(nodes: &mut Vec<Self>, policy: &SplitPolicy) -> Vec<Self> {
+        use rand::Rng;
+        use rand::seq::SliceRandom;
+
+        match policy {
+            SplitPolicy::Random => {
+                nodes.shuffle(&mut rand::thread_rng());
+                nodes.split_off(rand::thread_rng().gen_range(1..nodes.len()))
+            }
+            SplitPolicy::Half => {
+                nodes.split_off(nodes.len() / 2)
+            }
+            SplitPolicy::Greedy => {
+                todo!()
+            }
+            SplitPolicy::BruteForce => {
+                todo!()
+            }
+        }
     }
 
     fn shrink(&mut self) {

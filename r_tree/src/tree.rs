@@ -1,5 +1,5 @@
 use crate::bounding_box::BoundingBox;
-use crate::node::Node;
+use crate::node::{Node, SplitPolicy};
 
 /// R-Tree data structure.
 /// Provides insertion, search and nearest neighbor search.
@@ -8,6 +8,7 @@ use crate::node::Node;
 #[derive(Debug)]
 pub struct RTree<T, const N: usize> {
     root: Node<T, N>,
+    split_policy: SplitPolicy,
     capacity: usize,
     length: usize,
 }
@@ -17,10 +18,13 @@ impl<T, const N: usize> RTree<T, N> {
     const NODE_SIZE: usize = std::mem::size_of::<Node<T, N>>();
     const DEFAULT_CAPACITY: usize = Self::DISK_PAGE_SIZE / Self::NODE_SIZE;
 
+    const DEFAULT_SPLIT_POLICY: SplitPolicy = SplitPolicy::Half; // TODO: Select based on capacity.
+
     /// Initialize a new R-Tree with a default node capacity optimized for disk pages.
     pub fn new() -> RTree<T, N> {
         RTree {
             root: Node::new_node(vec![]),
+            split_policy: Self::DEFAULT_SPLIT_POLICY,
             capacity: Self::DEFAULT_CAPACITY,
             length: 0,
         }
@@ -28,8 +32,35 @@ impl<T, const N: usize> RTree<T, N> {
 
     /// Initialize a new R-Tree with a custom node capacity.
     pub fn with_capacity(capacity: usize) -> RTree<T, N> {
+        if capacity < 2 {
+            panic!("Node capacity has to be at least 2!")
+        }
         RTree {
             root: Node::new_node(vec![]),
+            split_policy: Self::DEFAULT_SPLIT_POLICY,
+            capacity,
+            length: 0,
+        }
+    }
+
+    /// Initialize a new R-Tree with a custom split policy.
+    pub fn with_split_policy(split_policy: SplitPolicy) -> RTree<T, N> {
+        RTree {
+            root: Node::new_node(vec![]),
+            split_policy,
+            capacity: Self::DEFAULT_CAPACITY,
+            length: 0,
+        }
+    }
+
+    /// Initialize a new R-Tree with a custom node capacity and split policy.
+    pub fn with_capacity_and_split_policy(capacity: usize, split_policy: SplitPolicy) -> RTree<T, N> {
+        if capacity < 2 {
+            panic!("Node capacity has to be at least 2!")
+        }
+        RTree {
+            root: Node::new_node(vec![]),
+            split_policy,
             capacity,
             length: 0,
         }
@@ -43,7 +74,7 @@ impl<T, const N: usize> RTree<T, N> {
     /// Insert a new bounding box with data into the tree.
     /// If there was an old value in this exact bounding box, it is returned.
     pub fn insert(&mut self, bbox: BoundingBox<N>, data: T) -> Option<T> {
-        if let Some(old) = self.root.insert(bbox, data, self.capacity) {
+        if let Some(old) = self.root.insert(bbox, data, self.capacity, &self.split_policy) {
             Some(old)
         } else {
             self.length += 1;
