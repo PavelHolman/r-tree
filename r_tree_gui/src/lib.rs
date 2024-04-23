@@ -1,6 +1,6 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
-use egui::{Color32, layers::ShapeIdx, Painter, Pos2, Rect, Rounding, Stroke};
+use egui::{layers::ShapeIdx, Color32, Painter, Pos2, Rect, Rounding, Stroke};
 
 pub use app::TemplateApp;
 use r_tree::{BoundingBox, RTree};
@@ -22,7 +22,7 @@ impl BoundedPainter {
 
     fn normalize(rect: Rect, bounding_box: &Rect) -> Rect {
         let (min, max) = (bounding_box.min.to_vec2(), bounding_box.max.to_vec2());
-        let mut normalized = Rect::from_min_max(rect.min + min, rect.max + min);
+        let normalized = Rect::from_min_max(rect.min + min, rect.max + min);
 
         println!("Drawing {:?}", normalized);
 
@@ -50,22 +50,31 @@ fn to_rect(bbox: &BoundingBox<2>) -> Rect {
     Rect::from_min_max(min, max)
 }
 
+const STROKE_WIDTH: f32 = 2.;
+const HIGHLIGHTED_STROKE_WIDTH: f32 = 2. * STROKE_WIDTH;
+
 // TODO: accept a BoundedPainter in parameters and paint using it
 pub(crate) fn draw_tree<T>(
     painter: Painter,
     viz_bounding_box: Rect,
     tree: &RTree<T, 2>,
-    highlighted_idx: Option<&BoundingBox<2>>,
+    highlighted: Option<&BoundingBox<2>>,
 ) {
     let painter = BoundedPainter::new(painter, viz_bounding_box);
 
     for (bbox, _data) in tree.iter() {
         let rect = to_rect(bbox);
-        match highlighted_idx {
-            Some(hbox) if hbox == bbox => {
-                painter.rect(rect, Rounding::ZERO, Stroke::new(1.0, Color32::GREEN))
-            }
-            _ => painter.rect(rect, Rounding::ZERO, Stroke::new(1.0, Color32::WHITE)),
+        match highlighted {
+            Some(hbox) if hbox == bbox => painter.rect(
+                rect,
+                Rounding::ZERO,
+                Stroke::new(HIGHLIGHTED_STROKE_WIDTH, Color32::GREEN),
+            ),
+            _ => painter.rect(
+                rect,
+                Rounding::ZERO,
+                Stroke::new(STROKE_WIDTH, Color32::WHITE),
+            ),
         };
     }
 }

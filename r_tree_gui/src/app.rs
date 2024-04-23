@@ -1,6 +1,4 @@
-use eframe::egui_glow::painter;
-use egui::{LayerId, Painter, Vec2};
-
+use egui::Vec2;
 use r_tree::{BoundingBox, RTree};
 
 use crate::draw_tree;
@@ -87,7 +85,7 @@ impl eframe::App for TemplateApp {
             ui.separator();
 
             let (response, painter) =
-                ui.allocate_painter(Vec2::new(100.0, 100.0), egui::Sense::click());
+                ui.allocate_painter(Vec2::new(1000.0, 700.0), egui::Sense::click());
             let viz_bounding_box = response.rect;
             draw_tree(
                 painter,
@@ -104,20 +102,6 @@ impl eframe::App for TemplateApp {
             // });
         });
     }
-}
-
-fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.label("Powered by ");
-        ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        ui.label(" and ");
-        ui.hyperlink_to(
-            "eframe",
-            "https://github.com/emilk/egui/tree/master/crates/eframe",
-        );
-        ui.label(".");
-    });
 }
 
 fn example_db() -> RTree<i32, 2> {
@@ -138,10 +122,12 @@ fn example_db() -> RTree<i32, 2> {
     let (p4, m4) = (BBox::from_points([0, 0], [40, 40]), 4);
     let (p6, m6) = (BBox::from_points([0, 0], [60, 60]), 6);
     let (p8, m8) = (BBox::from_points([0, 0], [80, 80]), 8);
+    let (p9, m9) = (BBox::from_points([20, 30], [100, 90]), 8);
 
     db.insert(p4, m4);
     db.insert(p6, m6);
     db.insert(p8, m8);
+    db.insert(p9, m9);
 
     for (bbox, data) in db.iter() {
         println!("bbox: {:?}, data: {}", bbox, data);
