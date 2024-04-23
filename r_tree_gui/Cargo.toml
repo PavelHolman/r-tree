@@ -10,6 +10,8 @@ all-features = true
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 
 [dependencies]
+r_tree = { path = "../r_tree" }
+
 egui = "0.27.0"
 eframe = { version = "0.27.0", default-features = false, features = [
     "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
@@ -30,21 +32,7 @@ env_logger = "0.10"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
 
-
-[profile.release]
-opt-level = 2 # fast and small wasm
-
 # Optimize all dependencies even in debug builds:
 [profile.dev.package."*"]
 opt-level = 2
 
-
-[patch.crates-io]
-
-# If you want to use the bleeding edge version of egui and eframe:
-# egui = { git = "https://github.com/emilk/egui", branch = "master" }
-# eframe = { git = "https://github.com/emilk/egui", branch = "master" }
-
-# If you fork https://github.com/emilk/egui you can test with:
-# egui = { path = "../egui/crates/egui" }
-# eframe = { path = "../egui/crates/eframe" }

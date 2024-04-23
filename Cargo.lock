@@ -1964,6 +1964,7 @@ dependencies = [
  "egui",
  "env_logger",
  "log",
+ "r_tree",
  "serde",
  "wasm-bindgen-futures",
 ]
