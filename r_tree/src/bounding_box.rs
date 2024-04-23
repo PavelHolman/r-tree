@@ -34,6 +34,7 @@ pub struct BoundingBox<const N: usize> {
 impl<const N: usize> BoundingBox<N> {
     const DIMENSION_CHECK: () = assert!(N > 0, "Bounding box dimension has to be positive!");
 
+    /// Create a new bounding box from the given points.
     pub fn from_points(min: [u64; N], max: [u64; N]) -> Self {
         Self {
             bounds: min.iter().zip(max.iter())
