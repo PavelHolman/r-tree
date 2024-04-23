@@ -52,7 +52,7 @@ impl<const N: usize> BoundingBox<N> {
     /// Get the area of the bounding box.
     pub fn area(&self) -> u64 {
         self.bounds.iter()
-            .map(|a| a.1 - a.0)
+            .map(|a| u64::max(1, a.1 - a.0)) // max 1 so that points on a line don't have 0 area
             .product()
     }
 
