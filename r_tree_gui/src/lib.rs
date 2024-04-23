@@ -1,11 +1,11 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
-mod app;
+use egui::{Color32, layers::ShapeIdx, Painter, Pos2, Rect, Rounding, Stroke};
 
 pub use app::TemplateApp;
-
-use egui::{layers::ShapeIdx, Color32, Painter, Pos2, Rect, Rounding, Stroke};
 use r_tree::{BoundingBox, RTree};
+
+mod app;
 
 struct BoundedPainter {
     painter: Painter,
@@ -45,8 +45,8 @@ impl BoundedPainter {
 }
 
 fn to_rect(bbox: &BoundingBox<2>) -> Rect {
-    let min = Pos2::new(bbox.bounds[0].0 as f32, bbox.bounds[0].1 as f32);
-    let max = Pos2::new(bbox.bounds[1].0 as f32, bbox.bounds[1].1 as f32);
+    let min = Pos2::new(bbox.bounds[0].min() as f32, bbox.bounds[1].min() as f32);
+    let max = Pos2::new(bbox.bounds[0].max() as f32, bbox.bounds[1].max() as f32);
     Rect::from_min_max(min, max)
 }
 

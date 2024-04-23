@@ -1,5 +1,6 @@
 use eframe::egui_glow::painter;
 use egui::{LayerId, Painter, Vec2};
+
 use r_tree::{BoundingBox, RTree};
 
 use crate::draw_tree;
@@ -124,19 +125,19 @@ fn example_db() -> RTree<i32, 2> {
 
     type BBox = BoundingBox<2>;
 
-    let (p0, m0) = (BBox::new([(0, 0), (0, 0)]), 0);
-    let (p1, m1) = (BBox::new([(0, 0), (10, 10)]), 1);
-    let (p2, m2) = (BBox::new([(0, 0), (20, 20)]), 2);
-    let (p3, m3) = (BBox::new([(0, 0), (30, 30)]), 3);
+    let (p0, m0) = (BBox::from_points([0, 0], [0, 0]), 0);
+    let (p1, m1) = (BBox::from_points([0, 0], [10, 10]), 1);
+    let (p2, m2) = (BBox::from_points([0, 0], [20, 20]), 2);
+    let (p3, m3) = (BBox::from_points([0, 0], [30, 30]), 3);
 
     db.insert(p0, m0);
     db.insert(p1, m1);
     db.insert(p2, m2);
     db.insert(p3, m3);
 
-    let (p4, m4) = (BBox::new([(0, 0), (40, 40)]), 4);
-    let (p6, m6) = (BBox::new([(0, 0), (60, 60)]), 6);
-    let (p8, m8) = (BBox::new([(0, 0), (80, 80)]), 8);
+    let (p4, m4) = (BBox::from_points([0, 0], [40, 40]), 4);
+    let (p6, m6) = (BBox::from_points([0, 0], [60, 60]), 6);
+    let (p8, m8) = (BBox::from_points([0, 0], [80, 80]), 8);
 
     db.insert(p4, m4);
     db.insert(p6, m6);
