@@ -49,6 +49,8 @@ impl<T, const N: usize> Node<T, N> {
     pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize, policy: &SplitPolicy) -> Option<T> {
         // TODO: Wrap implementation in a struct with all the parameters to avoid passing them around.
         // The root node could also be treated separately by adding Root kind to Data and avoid the unsafe block.
+        // Additionally, no [0,0] bbox would be created for empty root node.
+        // I really should consider actually doing this and not keeping this TODO around. :)
         let (split, old) = self.insert_impl(bbox, data, capacity, &policy);
         if let Some(node) = split {
             unsafe {
@@ -125,6 +127,7 @@ impl<T, const N: usize> Node<T, N> {
     fn split_nodes(nodes: &mut Vec<Self>, policy: &SplitPolicy) -> Vec<Self> {
         use rand::Rng;
         use rand::seq::SliceRandom;
+        use itertools::Itertools;
 
         match policy {
             SplitPolicy::Random => {
@@ -138,7 +141,35 @@ impl<T, const N: usize> Node<T, N> {
                 todo!()
             }
             SplitPolicy::BruteForce => {
-                todo!()
+                let area_of_nodes = |nodes: Vec<&Node<T, N>>| {
+                    BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>()).area()
+                };
+
+                let total_area = |left, right| {
+                    area_of_nodes(left) + area_of_nodes(right)
+                };
+
+                let (mut permutation, k) =
+                    (1..nodes.len())
+                        .flat_map(|k| {
+                            (0..nodes.len())
+                                .permutations(nodes.len())
+                                .map(move |permutation| (permutation, k))
+                        })
+                        .min_by_key(|(permutation, k)| {
+                            let (left_indices, right_indices) = permutation.split_at(*k);
+                            let left = left_indices.iter().map(|&i| &nodes[i]).collect::<Vec<_>>();
+                            let right = right_indices.iter().map(|&i| &nodes[i]).collect::<Vec<_>>();
+                            total_area(left, right)
+                        })
+                        .expect("Should be non empty, because splitting node without at least 2 elements makes no sense.");
+
+                permutation.split_off(k)
+                    .iter()
+                    .sorted()
+                    .rev()
+                    .map(|i| nodes.swap_remove(*i))
+                    .collect_vec()
             }
         }
     }

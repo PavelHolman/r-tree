@@ -1,4 +1,5 @@
 pub use crate::bounding_box::BoundingBox;
+pub use crate::node::SplitPolicy;
 pub use crate::tree::RTree;
 
 mod bounding_box;
@@ -42,7 +43,7 @@ fn example_usage() {
 
 #[test]
 fn test() {
-    let mut db = RTree::with_capacity(4);
+    let mut db = RTree::with_capacity_and_split_policy(4, SplitPolicy::BruteForce);
 
     type BBox = BoundingBox<2>;
 
