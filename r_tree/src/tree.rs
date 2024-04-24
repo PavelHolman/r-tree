@@ -1,6 +1,6 @@
 use crate::bounding_box::BoundingBox;
 use crate::node::{Node, SplitPolicy};
-use crate::RootView;
+use crate::tree_view::RootView;
 
 /// R-Tree data structure.
 /// Provides insertion, search and nearest neighbor search.

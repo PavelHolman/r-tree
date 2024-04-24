@@ -25,7 +25,7 @@ pub struct RootView<'a, T, const N: usize> {
 }
 
 impl<'a, T, const N: usize> RootView<'a, T, N> {
-    pub fn new(tree: &'a RTree<T, N>) -> Self {
+    pub(crate) fn new(tree: &'a RTree<T, N>) -> Self {
         RootView { nodes: Self::rec(&tree.root) }
     }
 
