@@ -15,7 +15,7 @@ pub struct NodeView<'a, T, const N: usize> {
 
 #[derive(Debug)]
 pub enum NodesView<'a, T, const N: usize> {
-    Leaves(Vec<LeafView<'a, T, N>>),
+    Leaf(LeafView<'a, T, N>),
     Inners(Vec<NodeView<'a, T, N>>),
 }
 
@@ -31,11 +31,11 @@ impl<'a, T, const N: usize> RootView<'a, T, N> {
 
     fn rec(node: &'a Node<T, N>) -> NodesView<'a, T, N> {
         match &node.data {
-            Data::Leaf(leaf) => NodesView::Leaves(
-                vec![LeafView {
+            Data::Leaf(leaf) => NodesView::Leaf(
+                LeafView {
                     bbox: &node.bbox,
                     data: leaf,
-                }]),
+                }),
             Data::Inner(nodes) => {
                 NodesView::Inners(
                     nodes.iter().map(|node| NodeView {
