@@ -1,4 +1,4 @@
-use egui::{Slider, Vec2};
+use egui::{Color32, Slider, Vec2};
 use r_tree::{BoundingBox, RTree};
 
 use crate::{draw_tree, BoundedPainter};
@@ -14,6 +14,9 @@ pub struct TemplateApp {
 
     #[serde(skip)]
     db: RTree<i32, 2>,
+
+    #[serde(skip)]
+    error_message: String,
 }
 
 impl Default for TemplateApp {
@@ -23,6 +26,7 @@ impl Default for TemplateApp {
             max: [100, 100],
             last_bbox: None,
             db: example_db(),
+            error_message: "".into(),
         }
     }
 }
@@ -44,8 +48,14 @@ impl TemplateApp {
 }
 
 impl TemplateApp {
-    fn show_error(&self, err: &'static str) {
-        todo!("Show error to user");
+    fn show_error(&mut self, err: &'static str) {
+        println!("show_error: '{}'", err);
+        self.error_message = err.into();
+    }
+
+    fn hide_error(&mut self) {
+        println!("hide error");
+        self.error_message.clear();
     }
 }
 
@@ -63,17 +73,24 @@ impl eframe::App for TemplateApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("R-Tree");
 
-            ui.add(Slider::new(&mut self.min[0], 0..=800).text("min x"));
-            ui.add(Slider::new(&mut self.min[1], 0..=600).text("min y"));
+            ui.columns(10, |columns| {
+                columns[0].vertical(|ui| {
+                    ui.add(Slider::new(&mut self.min[0], 0..=800).text("min x"));
+                    ui.add(Slider::new(&mut self.min[1], 0..=600).text("min y"));
+                    ui.separator();
+                    ui.add(Slider::new(&mut self.max[0], 100..=1200).text("max x"));
+                    ui.add(Slider::new(&mut self.max[1], 100..=700).text("max y"));
+                });
 
-            ui.separator();
-
-            ui.add(Slider::new(&mut self.max[0], 100..=1200).text("max x"));
-            ui.add(Slider::new(&mut self.max[1], 100..=700).text("max y"));
+                columns[1].vertical(|ui| {
+                    ui.colored_label(Color32::RED, &self.error_message);
+                });
+            });
 
             if ui.button("Insert").clicked() {
                 match BoundingBox::from_points(self.min, self.max) {
                     Ok(bbox) => {
+                        self.hide_error();
                         self.last_bbox = Some(bbox);
                         self.db.insert(bbox, 420);
                     }

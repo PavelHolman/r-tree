@@ -24,8 +24,6 @@ impl BoundedPainter {
         let (min, max) = (bounding_box.min.to_vec2(), bounding_box.max.to_vec2());
         let normalized = Rect::from_min_max(rect.min + min, rect.max + min);
 
-        println!("Drawing {:?}", normalized);
-
         if !bounding_box.contains_rect(normalized) {
             todo!("BoundingBox too large to visualize");
         }
