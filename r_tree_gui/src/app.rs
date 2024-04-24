@@ -77,11 +77,11 @@ impl eframe::App for TemplateApp {
 
             ui.columns(8, |columns| {
                 columns[0].vertical(|ui| {
-                    ui.add(Slider::new(&mut self.min[0], 0..=800).text("min x"));
-                    ui.add(Slider::new(&mut self.min[1], 0..=600).text("min y"));
+                    ui.add(Slider::new(&mut self.min[0], 0..=1200).text("min x"));
+                    ui.add(Slider::new(&mut self.min[1], 0..=700).text("min y"));
                     ui.separator();
-                    ui.add(Slider::new(&mut self.max[0], 100..=1200).text("max x"));
-                    ui.add(Slider::new(&mut self.max[1], 100..=700).text("max y"));
+                    ui.add(Slider::new(&mut self.max[0], 0..=1200).text("max x"));
+                    ui.add(Slider::new(&mut self.max[1], 0..=700).text("max y"));
                 });
 
                 columns[1].vertical(|ui| {
