@@ -6,6 +6,11 @@ mod bounding_box;
 mod node;
 mod tree;
 mod iterators;
+mod tree_view;
+
+/// TODO: Serialisation and caching - add indices to nodes and store them in a vector.
+/// Store the nodes in a vector and store the indices in the tree.
+/// Store everything to a file.
 
 #[test]
 fn example_usage() {
@@ -44,7 +49,7 @@ fn example_usage() {
 
 #[test]
 fn test() {
-    let mut db = RTree::with_capacity_and_split_policy(4, SplitPolicy::BruteForce);
+    let mut db = RTree::with_capacity_and_split_policy(4, SplitPolicy::Greedy);
 
     type BBox = BoundingBox<2>;
 

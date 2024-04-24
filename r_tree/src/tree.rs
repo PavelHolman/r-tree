@@ -1,5 +1,5 @@
 use crate::bounding_box::BoundingBox;
-use crate::node::{Node, SplitPolicy};
+use crate::node::{Leaf, Root, SplitPolicy};
 
 /// R-Tree data structure.
 /// Provides insertion, search and nearest neighbor search.
@@ -7,7 +7,7 @@ use crate::node::{Node, SplitPolicy};
 /// The tree is generic over the data type T and the compile time dimension N of the bounding boxes.
 #[derive(Debug)]
 pub struct RTree<T, const N: usize> {
-    root: Node<T, N>,
+    pub(crate) root: Root<T, N>,
     split_policy: SplitPolicy,
     capacity: usize,
     length: usize,
@@ -16,7 +16,7 @@ pub struct RTree<T, const N: usize> {
 impl<T, const N: usize> Default for RTree<T, N> {
     fn default() -> Self {
         Self {
-            root: Node::new_node(vec![]),
+            root: Root { nodes: crate::node::Nodes::Inners(vec![]) },
             split_policy: Self::DEFAULT_SPLIT_POLICY,
             capacity: Self::DEFAULT_CAPACITY,
             length: 0,
@@ -26,7 +26,7 @@ impl<T, const N: usize> Default for RTree<T, N> {
 
 impl<T, const N: usize> RTree<T, N> {
     const DISK_PAGE_SIZE: usize = 4096;
-    const NODE_SIZE: usize = std::mem::size_of::<Node<T, N>>();
+    const NODE_SIZE: usize = std::mem::size_of::<Leaf<T, N>>();
     const DEFAULT_CAPACITY: usize = Self::DISK_PAGE_SIZE / Self::NODE_SIZE;
     const DEFAULT_SPLIT_POLICY: SplitPolicy = if Self::DEFAULT_CAPACITY < 8 { SplitPolicy::BruteForce } else { SplitPolicy::Greedy };
 

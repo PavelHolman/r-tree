@@ -1,16 +1,58 @@
+use itertools::Itertools;
+
 use crate::bounding_box::BoundingBox;
 use crate::iterators::{LeafIter, NearestNeighborIter, SearchIter};
 
-#[derive(Debug)]
-pub(crate) enum Data<T, const N: usize> {
-    Leaf(T),
-    Inner(Vec<Node<T, N>>),
+trait BBoxable<const N: usize> {
+    fn bbox(&self) -> BoundingBox<N>;
 }
 
-#[derive(Debug)]
+impl<T, const N: usize> BBoxable<N> for Leaf<T, N> {
+    fn bbox(&self) -> BoundingBox<N> {
+        self.bbox
+    }
+}
+
+impl<T, const N: usize> BBoxable<N> for Node<T, N> {
+    fn bbox(&self) -> BoundingBox<N> {
+        self.bbox
+    }
+}
+
+impl<T, const N: usize> BBoxable<N> for Nodes<T, N> {
+    fn bbox(&self) -> BoundingBox<N> {
+        match self {
+            Nodes::Leaves(leaves) => BoundingBox::union(&leaves.iter().map(|leaf| &leaf.bbox).collect_vec()),
+            Nodes::Inners(nodes) => BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect_vec()),
+        }
+    }
+}
+
+impl<T, BB: BBoxable<N>, const N: usize> BBoxable<N> for Vec<BB> {
+    fn bbox(&self) -> BoundingBox<N> {
+        BoundingBox::union(&self.iter().map(|bb| bb.bbox()).collect_vec().as_ref())
+    }
+}
+
+// TODO: Only cache this, not in memory here.
+pub(crate) struct Leaf<T, const N: usize> {
+    pub(crate) bbox: BoundingBox<N>,
+    pub(crate) data: T,
+}
+
 pub(crate) struct Node<T, const N: usize> {
     pub(crate) bbox: BoundingBox<N>,
-    pub(crate) data: Data<T, N>,
+    pub(crate) nodes: Nodes<T, N>,
+}
+
+// TODO: Single ID instead of Leaf vec here.
+pub(crate) enum Nodes<T, const N: usize> {
+    Leaves(Vec<Leaf<T, N>>),
+    Inners(Vec<Node<T, N>>),
+}
+
+pub(crate) struct Root<T, const N: usize> {
+    pub(crate) nodes: Nodes<T, N>,
 }
 
 /// Defines the policy for splitting nodes when they reach the maximum capacity.
@@ -26,106 +68,70 @@ pub enum SplitPolicy {
     Greedy,
     BruteForce,
 }
+// TODO: Move to R-Tree, add config for the whole tree. (policy, leaf/node capacity, etc.)
 
-impl<T, const N: usize> Node<T, N> {
-    pub(crate) fn new_leaf(bbox: BoundingBox<N>, data: T) -> Self {
-        Self {
-            bbox,
-            data: Data::Leaf(data),
-        }
-    }
-
-    pub(crate) fn new_node(nodes: Vec<Self>) -> Self {
-        Self {
-            bbox: BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>()),
-            data: Data::Inner(nodes),
-        }
-    }
-
-    /// Insert a new bounding box with data into the tree.
-    /// Returns the old value if it was replaced.
+impl<T, const N: usize> Root<T, N> {
     pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize, policy: &SplitPolicy) -> Option<T> {
-        // TODO: Wrap implementation in a struct with all the parameters to avoid passing them around.
-        // The root node could also be treated separately by adding Root kind to Data and avoid the unsafe block.
-        // Additionally, no [0,0] bbox would be created for empty root node.
-        // I really should consider actually doing this and not keeping this TODO around. :)
-        let (split, old) = self.insert_impl(bbox, data, capacity, &policy);
-        if let Some(node) = split {
+        if let Some(old) = self.nodes.insert(bbox, data) {
+            return Some(old);
+        }
+
+        if match &self.nodes {
+            Nodes::Leaves(_) => panic!("Leaves shouldn't be directly linked to root."),
+            Nodes::Inners(nodes) => nodes.len()
+        } > capacity {
+            let other = Nodes::<T, N>::split_nodes(&mut self.nodes, &policy);
+
             unsafe {
-                let old_root = std::ptr::read(self);
-                let new_root = Self::new_node(vec![old_root, node]);
-                std::ptr::write(self, new_root);
+                let nodes = std::ptr::read(&self.nodes);
+                let nodes = Nodes::Inners(vec![
+                    Node { bbox: nodes.bbox(), nodes },
+                    Node { bbox: other.bbox(), nodes: Nodes::Inners(other) }]);
+
+                std::ptr::write(&mut self.nodes, nodes);
             }
-            if let Data::Inner(nodes) = &mut self.data {
-                for node in nodes {
-                    node.shrink();
-                }
-            }
+
+
+            // TODO splitter
         }
 
-        self.shrink();
-        old
+        None
     }
+}
 
-    /// Insert a new bounding box with data into the tree.
-    /// The recursion returns:
-    /// - a new node to add if the node has to be split in case of inner nodes,
-    /// - or a new leaf node if it was created and needs to be added
-    ///
-    /// and
-    /// - an old value, if it was replaced.
-    fn insert_impl(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize, policy: &SplitPolicy) -> (Option<Self>, Option<T>) {
-        match &mut self.data {
-            Data::Leaf(leaf) => {
-                if self.bbox == bbox {
-                    return (None, Some(std::mem::replace(leaf, data)));
+impl<T, const N: usize> Nodes<T, N> {
+    fn insert(&mut self, bbox: BoundingBox<N>, data: T) -> Option<T> {
+        let capacity = 8; // todo
+        let policy = SplitPolicy::Greedy; // todo
+
+        match &mut self {
+            Nodes::Leaves(leaves) => {
+                if let Some(leaf) = leaves.iter_mut().find(|leaf| leaf.bbox == bbox) {
+                    return Some(std::mem::replace(&mut leaf.data, data));
                 }
-                (Some(Self::new_leaf(bbox, data)), None)
+                leaves.push(Leaf { bbox, data });
+                // There is no need for fixing since the tree is always created with at least one inner node.
+                None
             }
-            Data::Inner(nodes) => {
-                if nodes.is_empty() {
-                    nodes.push(Self::new_leaf(bbox, data));
-                    self.bbox = bbox;
-                    return (None, None);
-                }
-
+            Nodes::Inners(nodes) => {
                 let best_node = Self::choose_best_node(nodes, &bbox);
-
-                let (node_to_add, old) = best_node.insert_impl(bbox, data, capacity, &policy);
-
-                if let Some(node_to_add) = node_to_add {
-                    nodes.push(node_to_add);
-                    self.bbox = BoundingBox::union(&[&self.bbox, &bbox]);
-                    if nodes.len() > capacity {
-                        let other_nodes = Self::split_nodes(nodes, &policy);
-                        self.shrink();
-                        return (Some(Self::new_node(other_nodes)), old);
-                    }
+                if let Some(old_value) = best_node.nodes.insert(bbox, data) {
+                    return Some(old_value);
                 }
-                (None, old)
+
+                if best_node.nodes.len() > capacity {
+                    let other_nodes = Self::split_nodes(best_node, &policy);
+                    nodes.push(Node { bbox: other_nodes.bbox(), nodes: other_nodes });
+                }
+                None
             }
         }
     }
 
-    /// Chooses the best node to insert the new bounding box into.
-    /// The best node is the one with the smallest increase in area after adding the bounding box.
-    /// If the area increase is the same, the node with the least amount of children is chosen.
-    fn choose_best_node<'a>(nodes: &'a mut Vec<Self>, bbox: &BoundingBox<N>) -> &'a mut Node<T, N> {
-        nodes
-            .iter_mut()
-            .min_by_key(|node|
-                (BoundingBox::union(&[&node.bbox, bbox]).area() - node.bbox.area(),
-                 match &node.data {
-                     Data::Leaf(_) => 1,
-                     Data::Inner(nodes) => nodes.len(),
-                 }))
-            .expect("Should be non empty, because leaf should have been inserted for empty.")
-    }
-
-    fn split_nodes(nodes: &mut Vec<Self>, policy: &SplitPolicy) -> Vec<Self> {
+    fn split_nodes(nodes: &mut Vec<impl BBoxable<N>>, policy: &SplitPolicy) -> Vec<impl BBoxable<N>>
+    {
         use rand::Rng;
         use rand::seq::SliceRandom;
-        use itertools::Itertools;
 
         match policy {
             SplitPolicy::Random => {
@@ -138,7 +144,7 @@ impl<T, const N: usize> Node<T, N> {
             SplitPolicy::Greedy => {
                 let ((i, j), _) = nodes.iter().enumerate()
                     .flat_map(|(i, l)| nodes.iter().enumerate().skip(i + 1)
-                        .map(move |(j, r)| ((i, j), l.bbox.distance(&r.bbox))))
+                        .map(move |(j, r)| ((i, j), l.bbox().distance(&r.bbox()))))
                     .min_by(|(_, d1), (_, d2)| d1.total_cmp(d2))
                     .expect("Should be non empty, because splitting node without at least 2 elements makes no sense.");
 
@@ -146,8 +152,8 @@ impl<T, const N: usize> Node<T, N> {
                 let mut right = vec![nodes.swap_remove(usize::min(i, j))];
 
                 for i in (0..nodes.len()).rev() {
-                    let left_distance = left[0].bbox.distance(&nodes[i].bbox);
-                    let right_distance = right[0].bbox.distance(&nodes[i].bbox);
+                    let left_distance = left[0].bbox().distance(&nodes[i].bbox());
+                    let right_distance = right[0].bbox().distance(&nodes[i].bbox());
 
                     if left_distance < right_distance {
                         left.push(nodes.swap_remove(i));
@@ -172,8 +178,8 @@ impl<T, const N: usize> Node<T, N> {
                             let left = left_indices.iter().map(|&i| &nodes[i]);
                             let right = right_indices.iter().map(|&i| &nodes[i]);
 
-                            let left_area = BoundingBox::union(&left.map(|node| &node.bbox).collect_vec()).area();
-                            let right_area = BoundingBox::union(&right.map(|node| &node.bbox).collect_vec()).area();
+                            let left_area = BoundingBox::union(&left.map(|node| &node.bbox()).collect_vec()).area();
+                            let right_area = BoundingBox::union(&right.map(|node| &node.bbox()).collect_vec()).area();
                             left_area + right_area
                         })
                         .expect("Should be non empty, because splitting node without at least 2 elements makes no sense.");
@@ -188,13 +194,16 @@ impl<T, const N: usize> Node<T, N> {
         }
     }
 
-    fn shrink(&mut self) {
-        match &mut self.data {
-            Data::Leaf(_) => {}
-            Data::Inner(nodes) => {
-                self.bbox = BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>());
-            }
-        }
+    fn choose_best_node<'a>(nodes: &'a mut Vec<Node<T, N>>, bbox: &BoundingBox<N>) -> &'a mut Node<T, N> {
+        nodes
+            .iter_mut()
+            .min_by_key(|node|
+                (BoundingBox::union(&[&node.bbox, bbox]).area() - node.bbox.area(),
+                 if let Nodes::inner(nodes) = &node.nodes { nodes.len() } else { 1 }))
+            .unwrap_or(|| {
+                nodes.push(Node { bbox: bbox.clone(), nodes: Nodes::Inners(vec![]) });
+                return nodes.first_mut().unwrap();
+            })
     }
 
     pub(crate) fn iter(&self) -> LeafIter<T, N> {
