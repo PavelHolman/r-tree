@@ -7,11 +7,11 @@ pub struct Interval {
 }
 
 impl Interval {
-    pub fn new(min: u64, max: u64) -> Self {
+    pub fn new(min: u64, max: u64) -> Result<Self, &'static str> {
         if min > max {
-            panic!("Interval min has to be less than max.");
+            return Err("Interval min has to be less than max.");
         }
-        Self { min, max }
+        Ok(Self { min, max })
     }
 
     pub fn min(&self) -> u64 {
@@ -33,25 +33,27 @@ pub struct BoundingBox<const N: usize> {
 
 impl<const N: usize> BoundingBox<N> {
     /// Create a new bounding box from the given points.
-    pub fn from_points(min: [u64; N], max: [u64; N]) -> Self {
+    pub fn from_points(min: [u64; N], max: [u64; N]) -> Result<Self, &'static str> {
         if N <= 0 {
-            panic!("Bounding box dimension has to be positive!");
+            return Err("Bounding box dimension has to be positive!");
         }
-        Self {
-            bounds: min.iter().zip(max.iter())
-                .map(|(min, max)| Interval::new(*min, *max))
+        Ok(Self {
+            bounds: min
+                .iter()
+                .zip(max.iter())
+                .map(|(min, max)| Interval::new(*min, *max).unwrap())
                 .collect_vec()
                 .try_into()
-                .expect("Why would this fail even.")
-        }
+                .expect("Why would this fail even."),
+        })
     }
 
     /// Create a new bounding box from the given intervals.
-    pub fn from_intervals(intervals: [Interval; N]) -> Self {
+    pub fn from_intervals(intervals: [Interval; N]) -> Result<Self, &'static str> {
         if N <= 0 {
-            panic!("Bounding box dimension has to be positive!");
+            return Err("Bounding box dimension has to be positive!");
         }
-        Self { bounds: intervals }
+        Ok(Self { bounds: intervals })
     }
 
     /// Create a new bounding box intersection of all given bounding boxes.
