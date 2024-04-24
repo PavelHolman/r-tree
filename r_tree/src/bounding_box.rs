@@ -1,5 +1,3 @@
-use itertools::Itertools;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Interval {
     min: u64,

@@ -21,7 +21,7 @@ impl BoundedPainter {
     }
 
     fn normalize(rect: Rect, bounding_box: &Rect) -> Rect {
-        let (min, max) = (bounding_box.min.to_vec2(), bounding_box.max.to_vec2());
+        let (min, _max) = (bounding_box.min.to_vec2(), bounding_box.max.to_vec2());
         let normalized = Rect::from_min_max(rect.min + min, rect.max + min);
 
         if !bounding_box.contains_rect(normalized) {
