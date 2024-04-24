@@ -145,6 +145,12 @@ impl<T, const N: usize> Node<T, N> {
                 let mut left = vec![nodes.swap_remove(usize::max(i, j))];
                 let mut right = vec![nodes.swap_remove(usize::min(i, j))];
 
+                nodes
+                    .sort_by(|node1, node2|
+                        f64::min(node1.bbox.distance(&left[0].bbox), node1.bbox.distance(&right[0].bbox))
+                            .total_cmp(&f64::min(node2.bbox.distance(&left[0].bbox), node2.bbox.distance(&right[0].bbox)))
+                            .reverse());
+
                 for i in (0..nodes.len()).rev() {
                     let bbox = &nodes[i].bbox;
                     let left_bboxes = left.iter().map(|node| &node.bbox).chain([bbox]).collect_vec();
