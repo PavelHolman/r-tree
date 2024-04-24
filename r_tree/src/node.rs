@@ -1,18 +1,16 @@
-use std::cmp::Ordering;
-use std::collections::BinaryHeap;
-
 use crate::bounding_box::BoundingBox;
+use crate::iterators::{LeafIter, NearestNeighborIter, SearchIter};
 
 #[derive(Debug)]
-enum Data<T, const N: usize> {
+pub(crate) enum Data<T, const N: usize> {
     Leaf(T),
     Inner(Vec<Node<T, N>>),
 }
 
 #[derive(Debug)]
 pub(crate) struct Node<T, const N: usize> {
-    bbox: BoundingBox<N>,
-    data: Data<T, N>,
+    pub(crate) bbox: BoundingBox<N>,
+    pub(crate) data: Data<T, N>,
 }
 
 /// Defines the policy for splitting nodes when they reach the maximum capacity.
@@ -200,127 +198,15 @@ impl<T, const N: usize> Node<T, N> {
     }
 
     pub(crate) fn iter(&self) -> LeafIter<T, N> {
-        LeafIter { nodes_to_visit: vec![self] }
+        LeafIter::new(self)
     }
 
     pub(crate) fn search<'a, 'b>(&'a self, bbox: &'b BoundingBox<N>) -> SearchIter<T, N>
         where 'b: 'a {
-        SearchIter {
-            nodes_to_visit: vec![self],
-            bbox,
-        }
+        SearchIter::new(self, bbox)
     }
 
     pub(crate) fn nearest<'a>(&'a self, bbox: &'a BoundingBox<N>) -> NearestNeighborIter<T, N> {
-        NearestNeighborIter {
-            nodes_to_visit: BinaryHeap::from_iter([NearestNeighborNode { node: self, distance: 0. }]),
-            bbox,
-        }
-    }
-}
-
-/// Iterator over all leaf nodes in the tree.
-pub struct LeafIter<'a, T, const N: usize> {
-    nodes_to_visit: Vec<&'a Node<T, N>>,
-}
-
-impl<'a, T, const N: usize> Iterator for LeafIter<'a, T, N> {
-    type Item = (&'a BoundingBox<N>, &'a T);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(node) = self.nodes_to_visit.pop() {
-            match &node.data {
-                Data::Leaf(leaf) => return Some((&node.bbox, &leaf)),
-                Data::Inner(nodes) => {
-                    for child in nodes.iter().rev() {
-                        self.nodes_to_visit.push(child);
-                    }
-                }
-            }
-        }
-        None
-    }
-}
-
-/// Iterator over all leaf nodes in the tree that are contained within the given bounding box.
-pub struct SearchIter<'a, 'b, T, const N: usize>
-    where 'b: 'a {
-    nodes_to_visit: Vec<&'a Node<T, N>>,
-    bbox: &'b BoundingBox<N>,
-}
-
-impl<'a, 'b, T, const N: usize> Iterator for SearchIter<'a, 'b, T, N> {
-    type Item = (&'a BoundingBox<N>, &'a T);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(node) = self.nodes_to_visit.pop() {
-            match &node.data {
-                Data::Leaf(leaf) => {
-                    if self.bbox.contains(&node.bbox) {
-                        return Some((&node.bbox, &leaf));
-                    }
-                }
-                Data::Inner(nodes) => {
-                    for child in nodes.iter().rev() {
-                        if self.bbox.intersects(&child.bbox) {
-                            self.nodes_to_visit.push(child);
-                        }
-                    }
-                }
-            }
-        }
-        None
-    }
-}
-
-struct NearestNeighborNode<'a, T, const N: usize> {
-    distance: f64,
-    node: &'a Node<T, N>,
-}
-
-/// Iterator over all leaf nodes in the tree in order of distance to the given bounding box.
-pub struct NearestNeighborIter<'a, T, const N: usize> {
-    nodes_to_visit: BinaryHeap<NearestNeighborNode<'a, T, N>>,
-    bbox: &'a BoundingBox<N>,
-}
-
-impl<'a, T, const N: usize> Eq for NearestNeighborNode<'a, T, N> {}
-
-impl<'a, T, const N: usize> PartialEq<Self> for NearestNeighborNode<'a, T, N> {
-    fn eq(&self, other: &Self) -> bool {
-        self.distance.eq(&other.distance)
-    }
-}
-
-impl<'a, T, const N: usize> PartialOrd<Self> for NearestNeighborNode<'a, T, N> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
-    }
-}
-
-impl<'a, T, const N: usize> Ord for NearestNeighborNode<'a, T, N> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.distance.partial_cmp(&other.distance)
-            .unwrap_or(Ordering::Equal)
-            .reverse()
-    }
-}
-
-impl<'a, T, const N: usize> Iterator for NearestNeighborIter<'a, T, N> {
-    type Item = (&'a BoundingBox<N>, &'a T);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(neighbor) = self.nodes_to_visit.pop() {
-            match &neighbor.node.data {
-                Data::Leaf(leaf) => return Some((&neighbor.node.bbox, &leaf)),
-                Data::Inner(nodes) => {
-                    for child in nodes.iter() {
-                        let distance = self.bbox.distance(&child.bbox);
-                        self.nodes_to_visit.push(NearestNeighborNode { distance, node: child });
-                    }
-                }
-            }
-        }
-        None
+        NearestNeighborIter::new(self, bbox)
     }
 }

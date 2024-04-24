@@ -5,6 +5,7 @@ pub use crate::tree::RTree;
 mod bounding_box;
 mod node;
 mod tree;
+mod iterators;
 
 #[test]
 fn example_usage() {
