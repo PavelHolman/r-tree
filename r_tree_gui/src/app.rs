@@ -43,6 +43,12 @@ impl TemplateApp {
     }
 }
 
+impl TemplateApp {
+    fn show_error(&self, err: &'static str) {
+        todo!("Show error to user");
+    }
+}
+
 impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
@@ -66,9 +72,13 @@ impl eframe::App for TemplateApp {
             ui.add(Slider::new(&mut self.max[1], 100..=300).text("max y"));
 
             if ui.button("Insert").clicked() {
-                let bbox = BoundingBox::from_points(self.min, self.max);
-                self.last_bbox = Some(bbox);
-                self.db.insert(bbox, 420);
+                match BoundingBox::from_points(self.min, self.max) {
+                    Ok(bbox) => {
+                        self.last_bbox = Some(bbox);
+                        self.db.insert(bbox, 420);
+                    }
+                    Err(err) => self.show_error(err),
+                }
             }
 
             ui.separator();
@@ -93,20 +103,20 @@ fn example_db() -> RTree<i32, 2> {
     let (p2, m2) = (BBox::from_points([0, 0], [20, 20]), 2);
     let (p3, m3) = (BBox::from_points([0, 0], [30, 30]), 3);
 
-    db.insert(p0, m0);
-    db.insert(p1, m1);
-    db.insert(p2, m2);
-    db.insert(p3, m3);
+    db.insert(p0.unwrap(), m0);
+    db.insert(p1.unwrap(), m1);
+    db.insert(p2.unwrap(), m2);
+    db.insert(p3.unwrap(), m3);
 
     let (p4, m4) = (BBox::from_points([0, 0], [40, 40]), 4);
     let (p6, m6) = (BBox::from_points([0, 0], [60, 60]), 6);
     let (p8, m8) = (BBox::from_points([0, 0], [80, 80]), 8);
     let (p9, m9) = (BBox::from_points([20, 30], [100, 90]), 8);
 
-    db.insert(p4, m4);
-    db.insert(p6, m6);
-    db.insert(p8, m8);
-    db.insert(p9, m9);
+    db.insert(p4.unwrap(), m4);
+    db.insert(p6.unwrap(), m6);
+    db.insert(p8.unwrap(), m8);
+    db.insert(p9.unwrap(), m9);
 
     for (bbox, data) in db.iter() {
         println!("bbox: {:?}, data: {}", bbox, data);
