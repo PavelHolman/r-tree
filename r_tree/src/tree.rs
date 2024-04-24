@@ -17,12 +17,13 @@ impl<T, const N: usize> RTree<T, N> {
     const DISK_PAGE_SIZE: usize = 4096;
     const NODE_SIZE: usize = std::mem::size_of::<Node<T, N>>();
     const DEFAULT_CAPACITY: usize = Self::DISK_PAGE_SIZE / Self::NODE_SIZE;
+    const DEFAULT_SPLIT_POLICY: SplitPolicy = if Self::DEFAULT_CAPACITY < 8 { SplitPolicy::BruteForce } else { SplitPolicy::Greedy };
 
     /// Initialize a new R-Tree with a default node capacity optimized for disk pages.
     pub fn new() -> RTree<T, N> {
         RTree {
             root: Node::new_node(vec![]),
-            split_policy: Self::choose_default_split_policy(Self::DEFAULT_CAPACITY),
+            split_policy: Self::DEFAULT_SPLIT_POLICY,
             capacity: Self::DEFAULT_CAPACITY,
             length: 0,
         }
@@ -35,17 +36,9 @@ impl<T, const N: usize> RTree<T, N> {
         }
         RTree {
             root: Node::new_node(vec![]),
-            split_policy: Self::choose_default_split_policy(capacity),
+            split_policy: if capacity < 8 { SplitPolicy::BruteForce } else { SplitPolicy::Greedy },
             capacity,
             length: 0,
-        }
-    }
-
-    fn choose_default_split_policy(capacity: usize) -> SplitPolicy {
-        if capacity < 8 {
-            SplitPolicy::BruteForce
-        } else {
-            SplitPolicy::Greedy
         }
     }
 
