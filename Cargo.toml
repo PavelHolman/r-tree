@@ -1,6 +1,12 @@
 [workspace]
+resolver = "1"
 
 members = [
     "r_tree",
     "r_tree_gui",
 ]
+
+# Optimize all dependencies even in debug builds:
+[profile.dev.package."*"]
+opt-level = 2
+
