@@ -1,6 +1,7 @@
 pub use crate::bounding_box::{BoundingBox, Interval};
 pub use crate::node::SplitPolicy;
 pub use crate::tree::RTree;
+use crate::tree_view::{NodesView, NodeView};
 pub use crate::tree_view::RootView;
 
 mod bounding_box;
@@ -17,8 +18,27 @@ fn test_view() {
     db.insert(BoundingBox::from_intervals([Interval::new(2, 2).unwrap(), Interval::new(2, 2).unwrap()]).unwrap(), "Good morning!".to_owned());
     db.insert(BoundingBox::from_intervals([Interval::new(3, 3).unwrap(), Interval::new(3, 3).unwrap()]).unwrap(), "Good evening!".to_owned());
     db.insert(BoundingBox::from_intervals([Interval::new(4, 4).unwrap(), Interval::new(4, 4).unwrap()]).unwrap(), "Good afternoon!".to_owned());
-    
-    println!("{:?}", db.view())
+
+    fn print_view(view: NodesView<String, 2>, indent_level: usize) {
+        let indent = " ".repeat(4 * indent_level);
+        match view {
+            NodesView::Leaf(leaf) => {
+                let x = leaf.bbox.bounds[0];
+                let y = leaf.bbox.bounds[1];
+                println!("{}[{}:{},{}:{}] {}", indent, x.min(), x.max(), y.min(), y.max(), leaf.data);
+            }
+            NodesView::Inners(inners) => {
+                for inner in inners {
+                    let x = inner.bbox.bounds[0];
+                    let y = inner.bbox.bounds[1];
+                    println!("{}[{}:{},{}:{}]:", indent, x.min(), x.max(), y.min(), y.max());
+                    print_view(inner.nodes, indent_level + 1);
+                }
+            }
+        }
+    }
+
+    print_view(db.view().nodes, 0);
 }
 
 #[test]
