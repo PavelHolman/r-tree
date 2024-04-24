@@ -63,13 +63,13 @@ impl eframe::App for TemplateApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("R-Tree");
 
-            ui.add(Slider::new(&mut self.min[0], 0..=200).text("min x"));
-            ui.add(Slider::new(&mut self.min[1], 0..=200).text("min y"));
+            ui.add(Slider::new(&mut self.min[0], 0..=800).text("min x"));
+            ui.add(Slider::new(&mut self.min[1], 0..=600).text("min y"));
 
             ui.separator();
 
-            ui.add(Slider::new(&mut self.max[0], 100..=300).text("max x"));
-            ui.add(Slider::new(&mut self.max[1], 100..=300).text("max y"));
+            ui.add(Slider::new(&mut self.max[0], 100..=1200).text("max x"));
+            ui.add(Slider::new(&mut self.max[1], 100..=700).text("max y"));
 
             if ui.button("Insert").clicked() {
                 match BoundingBox::from_points(self.min, self.max) {
@@ -84,7 +84,7 @@ impl eframe::App for TemplateApp {
             ui.separator();
 
             let (response, painter) =
-                ui.allocate_painter(Vec2::new(1000.0, 700.0), egui::Sense::click());
+                ui.allocate_painter(Vec2::new(1280.0, 720.0), egui::Sense::click());
             let painter = BoundedPainter::new(painter, response.rect);
             draw_tree(painter, &self.db, self.last_bbox);
 

@@ -6,13 +6,8 @@
 fn main() -> eframe::Result<()> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
-    // TODO: the window's size doesn't change with this variable
-    let window_size = egui::Vec2::new(1280., 720.);
-
     let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            // .with_maximized(true)
-            .with_inner_size(window_size),
+        viewport: egui::ViewportBuilder::default().with_maximized(true),
         ..Default::default()
     };
 
