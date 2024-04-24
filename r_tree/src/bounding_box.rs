@@ -37,15 +37,15 @@ impl<const N: usize> BoundingBox<N> {
         if N <= 0 {
             return Err("Bounding box dimension has to be positive!");
         }
+
+        let intervals: Result<Vec<_>, &'static str> = min
+            .iter()
+            .zip(max.iter())
+            .map(|(min, max)| Interval::new(*min, *max))
+            .collect();
+
         Ok(Self {
-            bounds: min
-                .iter()
-                .zip(max.iter())
-                // TODO: how to propagate the error from within the map closure
-                .map(|(min, max)| Interval::new(*min, *max).unwrap())
-                .collect_vec()
-                .try_into()
-                .expect("Why would this fail even."),
+            bounds: intervals?.try_into().expect("How would this fail even."),
         })
     }
 
