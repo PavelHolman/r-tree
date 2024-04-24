@@ -1,5 +1,6 @@
 use crate::bounding_box::BoundingBox;
 use crate::node::{Node, SplitPolicy};
+use crate::RootView;
 
 /// R-Tree data structure.
 /// Provides insertion, search and nearest neighbor search.
@@ -7,7 +8,7 @@ use crate::node::{Node, SplitPolicy};
 /// The tree is generic over the data type T and the compile time dimension N of the bounding boxes.
 #[derive(Debug)]
 pub struct RTree<T, const N: usize> {
-    root: Node<T, N>,
+    pub(crate) root: Node<T, N>,
     split_policy: SplitPolicy,
     capacity: usize,
     length: usize,
@@ -37,7 +38,7 @@ impl<T, const N: usize> RTree<T, N> {
 
     /// Initialize a new R-Tree with a custom node capacity.
     pub fn with_capacity(capacity: usize) -> RTree<T, N> {
-        Self::with_capacity_and_split_policy(capacity, Self::DEFAULT_SPLIT_POLICY)
+        Self::with_capacity_and_split_policy(capacity, if capacity < 8 { SplitPolicy::BruteForce } else { SplitPolicy::Greedy })
     }
 
     /// Initialize a new R-Tree with a custom split policy.
@@ -55,6 +56,11 @@ impl<T, const N: usize> RTree<T, N> {
             capacity,
             ..Default::default()
         }
+    }
+
+    pub fn view<'a, 'b>(&'b self) -> RootView<'a, T, N>
+        where 'b: 'a {
+        RootView::new(&self)
     }
 
     /// Get the number of elements in the tree.
