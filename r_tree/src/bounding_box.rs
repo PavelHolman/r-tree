@@ -41,6 +41,7 @@ impl<const N: usize> BoundingBox<N> {
             bounds: min
                 .iter()
                 .zip(max.iter())
+                // TODO: how to propagate the error from within the map closure
                 .map(|(min, max)| Interval::new(*min, *max).unwrap())
                 .collect_vec()
                 .try_into()
