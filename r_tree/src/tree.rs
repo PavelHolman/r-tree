@@ -89,8 +89,7 @@ impl<T, const N: usize> RTree<T, N> {
     /// Search for all elements in the tree that intersect with the given bounding box.
     /// This search is optimized such that it only searches in the nodes that intersect with the given bounding box.
     /// Only the elements that are fully contained in the given bounding box are returned.
-    pub fn search<'a, 'b>(&'a self, bbox: &'b BoundingBox<N>) -> impl Iterator<Item=(&BoundingBox<N>, &T)>
-        where 'b : 'a {
+    pub fn search<'a>(&'a self, bbox: &'a BoundingBox<N>) -> impl Iterator<Item=(&BoundingBox<N>, &T)> {
         self.root.search(bbox)
     }
 
