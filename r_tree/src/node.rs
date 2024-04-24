@@ -201,8 +201,7 @@ impl<T, const N: usize> Node<T, N> {
         LeafIter::new(self)
     }
 
-    pub(crate) fn search<'a, 'b>(&'a self, bbox: &'b BoundingBox<N>) -> SearchIter<T, N>
-        where 'b: 'a {
+    pub(crate) fn search<'a>(&'a self, bbox: &'a BoundingBox<N>) -> SearchIter<T, N> {
         SearchIter::new(self, bbox)
     }
 

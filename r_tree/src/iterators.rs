@@ -34,19 +34,18 @@ impl<'a, T, const N: usize> Iterator for LeafIter<'a, T, N> {
 }
 
 /// Iterator over all leaf nodes in the tree that are contained within the given bounding box.
-pub struct SearchIter<'a, 'b, T, const N: usize> // TODO: Is the 'b lifetime necessary?
-    where 'b: 'a {
+pub struct SearchIter<'a, T, const N: usize> {
     nodes_to_visit: Vec<&'a Node<T, N>>,
-    bbox: &'b BoundingBox<N>,
+    bbox: &'a BoundingBox<N>,
 }
 
-impl<'a, 'b, T, const N: usize> SearchIter<'a, 'b, T, N> {
+impl<'a, T, const N: usize> SearchIter<'a, T, N> {
     pub(crate) fn new(node: &'a Node<T, N>, bbox: &'a BoundingBox<N>) -> Self {
         SearchIter { nodes_to_visit: vec![node], bbox }
     }
 }
 
-impl<'a, 'b, T, const N: usize> Iterator for SearchIter<'a, 'b, T, N> {
+impl<'a, T, const N: usize> Iterator for SearchIter<'a, T, N> {
     type Item = (&'a BoundingBox<N>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
