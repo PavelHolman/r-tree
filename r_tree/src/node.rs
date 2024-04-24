@@ -146,10 +146,11 @@ impl<T, const N: usize> Node<T, N> {
                 let mut right = vec![nodes.swap_remove(usize::min(i, j))];
 
                 for i in (0..nodes.len()).rev() {
-                    let left_distance = left[0].bbox.distance(&nodes[i].bbox);
-                    let right_distance = right[0].bbox.distance(&nodes[i].bbox);
+                    let bbox = &nodes[i].bbox;
+                    let left_bboxes = left.iter().map(|node| &node.bbox).chain([bbox]).collect_vec();
+                    let right_bboxes = right.iter().map(|node| &node.bbox).chain([bbox]).collect_vec();
 
-                    if left_distance < right_distance {
+                    if BoundingBox::union(&left_bboxes).area() < BoundingBox::union(&right_bboxes).area() {
                         left.push(nodes.swap_remove(i));
                     } else {
                         right.push(nodes.swap_remove(i));
