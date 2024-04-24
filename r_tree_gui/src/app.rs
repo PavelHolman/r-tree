@@ -1,7 +1,7 @@
 use egui::{Slider, Vec2};
 use r_tree::{BoundingBox, RTree};
 
-use crate::draw_tree;
+use crate::{draw_tree, BoundedPainter};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -85,8 +85,8 @@ impl eframe::App for TemplateApp {
 
             let (response, painter) =
                 ui.allocate_painter(Vec2::new(1000.0, 700.0), egui::Sense::click());
-            let viz_bounding_box = response.rect;
-            draw_tree(painter, viz_bounding_box, &self.db, self.last_bbox);
+            let painter = BoundedPainter::new(painter, response.rect);
+            draw_tree(painter, &self.db, self.last_bbox);
 
             ui.separator();
         });
