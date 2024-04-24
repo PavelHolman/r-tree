@@ -13,6 +13,17 @@ pub struct RTree<T, const N: usize> {
     length: usize,
 }
 
+impl<T, const N: usize> Default for RTree<T, N> {
+    fn default() -> Self {
+        Self {
+            root: Node::new_node(vec![]),
+            split_policy: Self::DEFAULT_SPLIT_POLICY,
+            capacity: Self::DEFAULT_CAPACITY,
+            length: 0,
+        }
+    }
+}
+
 impl<T, const N: usize> RTree<T, N> {
     const DISK_PAGE_SIZE: usize = 4096;
     const NODE_SIZE: usize = std::mem::size_of::<Node<T, N>>();
@@ -21,35 +32,17 @@ impl<T, const N: usize> RTree<T, N> {
 
     /// Initialize a new R-Tree with a default node capacity optimized for disk pages.
     pub fn new() -> RTree<T, N> {
-        RTree {
-            root: Node::new_node(vec![]),
-            split_policy: Self::DEFAULT_SPLIT_POLICY,
-            capacity: Self::DEFAULT_CAPACITY,
-            length: 0,
-        }
+        Self::with_capacity_and_split_policy(Self::DEFAULT_CAPACITY, Self::DEFAULT_SPLIT_POLICY)
     }
 
     /// Initialize a new R-Tree with a custom node capacity.
     pub fn with_capacity(capacity: usize) -> RTree<T, N> {
-        if capacity < 2 {
-            panic!("Node capacity has to be at least 2!")
-        }
-        RTree {
-            root: Node::new_node(vec![]),
-            split_policy: if capacity < 8 { SplitPolicy::BruteForce } else { SplitPolicy::Greedy },
-            capacity,
-            length: 0,
-        }
+        Self::with_capacity_and_split_policy(capacity, Self::DEFAULT_SPLIT_POLICY)
     }
 
     /// Initialize a new R-Tree with a custom split policy.
     pub fn with_split_policy(split_policy: SplitPolicy) -> RTree<T, N> {
-        RTree {
-            root: Node::new_node(vec![]),
-            split_policy,
-            capacity: Self::DEFAULT_CAPACITY,
-            length: 0,
-        }
+        Self::with_capacity_and_split_policy(Self::DEFAULT_CAPACITY, split_policy)
     }
 
     /// Initialize a new R-Tree with a custom node capacity and split policy.
@@ -58,10 +51,9 @@ impl<T, const N: usize> RTree<T, N> {
             panic!("Node capacity has to be at least 2!")
         }
         RTree {
-            root: Node::new_node(vec![]),
             split_policy,
             capacity,
-            length: 0,
+            ..Default::default()
         }
     }
 
