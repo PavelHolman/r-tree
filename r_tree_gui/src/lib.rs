@@ -3,7 +3,7 @@
 pub use app::TemplateApp;
 use egui::{layers::ShapeIdx, Color32, Painter, Pos2, Rect, Rounding, Stroke};
 use r_tree::{BoundingBox, RTree};
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 mod app;
 
@@ -11,6 +11,10 @@ struct BoundedPainter {
     painter: Painter,
     bounding_box: Rect,
 }
+
+const STROKE_WIDTH: f32 = 2.;
+const HIGHLIGHTED_STROKE_WIDTH: f32 = 2. * STROKE_WIDTH;
+const ROUNDING: f32 = 0.;
 
 impl BoundedPainter {
     fn new(painter: Painter, bounding_box: Rect) -> Self {
@@ -25,7 +29,7 @@ impl BoundedPainter {
         let normalized = Rect::from_min_max(rect.min + min, rect.max + min);
 
         if !bounding_box.contains_rect(normalized) {
-            todo!("BoundingBox too large to visualize");
+            unimplemented!("BoundingBox too large to visualize");
         }
 
         normalized
@@ -40,6 +44,21 @@ impl BoundedPainter {
         let rect = Self::normalize(rect, &self.bounding_box);
         self.painter.rect_stroke(rect, rounding, stroke)
     }
+
+    fn draw_leaf<T>(&self, rect: Rect, data: T, highlighted: bool)
+    where
+        T: Display,
+    {
+        if !highlighted {
+            self.rect(rect, ROUNDING, Stroke::new(STROKE_WIDTH, Color32::WHITE))
+        } else {
+            self.rect(
+                rect,
+                ROUNDING,
+                Stroke::new(HIGHLIGHTED_STROKE_WIDTH, Color32::GREEN),
+            )
+        };
+    }
 }
 
 fn to_rect(bbox: &BoundingBox<2>) -> Rect {
@@ -48,24 +67,18 @@ fn to_rect(bbox: &BoundingBox<2>) -> Rect {
     Rect::from_min_max(min, max)
 }
 
-const STROKE_WIDTH: f32 = 2.;
-const HIGHLIGHTED_STROKE_WIDTH: f32 = 2. * STROKE_WIDTH;
-const ROUNDING: f32 = 0.;
-
 pub(crate) fn draw_tree<T>(
     painter: BoundedPainter,
     tree: &RTree<T, 2>,
     highlighted: &HashSet<BoundingBox<2>>,
-) {
-    for (bbox, _data) in tree.iter() {
+) where
+    T: Display,
+{
+    // TODO: visualize data in each bbox
+    // TODO: visualize not only leaves, but all nodes
+    // TODO: GUI interface for extended insertion, split policy choice etc.
+    for (bbox, data) in tree.iter() {
         let rect = to_rect(bbox);
-        match bbox {
-            bbox if highlighted.contains(bbox) => painter.rect(
-                rect,
-                ROUNDING,
-                Stroke::new(HIGHLIGHTED_STROKE_WIDTH, Color32::GREEN),
-            ),
-            _ => painter.rect(rect, ROUNDING, Stroke::new(STROKE_WIDTH, Color32::WHITE)),
-        };
+        painter.draw_leaf(rect, data, highlighted.contains(bbox));
     }
 }
