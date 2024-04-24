@@ -94,7 +94,10 @@ impl eframe::App for TemplateApp {
                         self.last_bbox = Some(bbox);
                         self.db.insert(bbox, 420);
                     }
-                    Err(err) => self.show_error(err),
+                    Err(err) => {
+                        self.last_bbox = None;
+                        self.show_error(err);
+                    }
                 }
             }
 
