@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use egui::{Color32, Slider, Vec2};
 use r_tree::{BoundingBox, RTree};
 
@@ -10,7 +12,7 @@ pub struct TemplateApp {
     max: [u64; 2],
 
     #[serde(skip)]
-    last_bbox: Option<BoundingBox<2>>,
+    highlighted: HashSet<BoundingBox<2>>,
 
     #[serde(skip)]
     db: RTree<i32, 2>,
@@ -24,7 +26,7 @@ impl Default for TemplateApp {
         Self {
             min: [0, 0],
             max: [100, 100],
-            last_bbox: None,
+            highlighted: HashSet::new(),
             db: example_db(),
             error_message: "".into(),
         }
@@ -73,7 +75,7 @@ impl eframe::App for TemplateApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("R-Tree");
 
-            ui.columns(10, |columns| {
+            ui.columns(8, |columns| {
                 columns[0].vertical(|ui| {
                     ui.add(Slider::new(&mut self.min[0], 0..=800).text("min x"));
                     ui.add(Slider::new(&mut self.min[1], 0..=600).text("min y"));
@@ -88,14 +90,28 @@ impl eframe::App for TemplateApp {
             });
 
             if ui.button("Insert").clicked() {
+                self.highlighted.clear();
                 match BoundingBox::from_points(self.min, self.max) {
                     Ok(bbox) => {
                         self.hide_error();
-                        self.last_bbox = Some(bbox);
+                        self.highlighted.insert(bbox);
                         self.db.insert(bbox, 420);
                     }
                     Err(err) => {
-                        self.last_bbox = None;
+                        self.show_error(err);
+                    }
+                }
+            }
+
+            if ui.button("Search inside").clicked() {
+                self.highlighted.clear();
+                match BoundingBox::from_points(self.min, self.max) {
+                    Ok(bbox) => {
+                        self.hide_error();
+                        self.highlighted =
+                            self.db.search(&bbox).map(|(bbox, _val)| *bbox).collect();
+                    }
+                    Err(err) => {
                         self.show_error(err);
                     }
                 }
@@ -106,7 +122,7 @@ impl eframe::App for TemplateApp {
             let (response, painter) =
                 ui.allocate_painter(Vec2::new(1280.0, 720.0), egui::Sense::click());
             let painter = BoundedPainter::new(painter, response.rect);
-            draw_tree(painter, &self.db, self.last_bbox);
+            draw_tree(painter, &self.db, &self.highlighted);
 
             ui.separator();
         });

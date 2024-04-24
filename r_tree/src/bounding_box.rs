@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Interval {
     min: u64,
     max: u64,
@@ -26,7 +26,7 @@ impl Interval {
 /// Bounding box implementation for R-Tree.
 /// The bounds are stored as a tuple of (min, max) for each dimension.
 /// The intervals are inclusive on both sides.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BoundingBox<const N: usize> {
     pub bounds: [Interval; N],
 }

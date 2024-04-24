@@ -1,9 +1,9 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
-use egui::{layers::ShapeIdx, Color32, Painter, Pos2, Rect, Rounding, Stroke};
-
 pub use app::TemplateApp;
+use egui::{layers::ShapeIdx, Color32, Painter, Pos2, Rect, Rounding, Stroke};
 use r_tree::{BoundingBox, RTree};
+use std::collections::HashSet;
 
 mod app;
 
@@ -55,12 +55,12 @@ const ROUNDING: f32 = 0.;
 pub(crate) fn draw_tree<T>(
     painter: BoundedPainter,
     tree: &RTree<T, 2>,
-    highlighted: Option<BoundingBox<2>>,
+    highlighted: &HashSet<BoundingBox<2>>,
 ) {
     for (bbox, _data) in tree.iter() {
         let rect = to_rect(bbox);
-        match highlighted {
-            Some(hbox) if hbox == *bbox => painter.rect(
+        match bbox {
+            bbox if highlighted.contains(bbox) => painter.rect(
                 rect,
                 ROUNDING,
                 Stroke::new(HIGHLIGHTED_STROKE_WIDTH, Color32::GREEN),
