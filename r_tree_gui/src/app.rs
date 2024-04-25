@@ -51,12 +51,10 @@ impl TemplateApp {
 
 impl TemplateApp {
     fn show_error(&mut self, err: &'static str) {
-        println!("show_error: '{}'", err);
         self.error_message = err.into();
     }
 
     fn hide_error(&mut self) {
-        println!("hide error");
         self.error_message.clear();
     }
 }
