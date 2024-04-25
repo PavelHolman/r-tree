@@ -1,6 +1,5 @@
 pub use crate::bounding_box::{BoundingBox, Interval};
-pub use crate::node::SplitPolicy;
-pub use crate::tree::RTree;
+pub use crate::tree::{RTree, SplitPolicy};
 pub use crate::tree_view::{NodeView, NodesView};
 
 mod bounding_box;

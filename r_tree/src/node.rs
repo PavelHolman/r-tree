@@ -1,5 +1,6 @@
 use crate::bounding_box::BoundingBox;
 use crate::iterators::{LeafIter, NearestNeighborIter, SearchIter};
+use crate::tree::SplitPolicy;
 
 #[derive(Debug)]
 pub(crate) enum Data<T, const N: usize> {
@@ -11,20 +12,6 @@ pub(crate) enum Data<T, const N: usize> {
 pub(crate) struct Node<T, const N: usize> {
     pub(crate) bbox: BoundingBox<N>,
     pub(crate) data: Data<T, N>,
-}
-
-/// Defines the policy for splitting nodes when they reach the maximum capacity.
-/// The policy can be one of:
-/// - Half: Split the nodes in half in order of insertion.
-/// - Random: Split the nodes randomly.
-/// - Greedy: Split the two furthest nodes and the rest is added to one of them based on area increase.
-/// - BruteForce: Split the nodes such that the area is minimal by trying all possibilities.
-#[derive(Debug, PartialEq, Clone)]
-pub enum SplitPolicy {
-    Half,
-    Random,
-    Greedy,
-    BruteForce,
 }
 
 impl<T, const N: usize> Node<T, N> {

@@ -1,6 +1,21 @@
 use crate::bounding_box::BoundingBox;
-use crate::node::{Node, SplitPolicy};
+use crate::node::Node;
 use crate::tree_view::RootView;
+
+/// Defines the policy for splitting nodes when they reach the maximum capacity.
+/// The policy can be one of:
+/// - Half: Split the nodes in half in order of insertion.
+/// - Random: Split the nodes randomly.
+/// - Greedy: Split the two furthest nodes and the rest is added to one of them based on area increase.
+/// - BruteForce: Split the nodes such that the area is minimal by trying all possibilities.
+#[derive(Debug, PartialEq, Clone)]
+pub enum SplitPolicy {
+    Half,
+    Random,
+    Greedy,
+    BruteForce,
+}
+
 
 /// R-Tree data structure.
 /// Provides insertion, search and nearest neighbor search.
