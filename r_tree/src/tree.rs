@@ -1,5 +1,5 @@
 use crate::bounding_box::BoundingBox;
-use crate::node::Node;
+use crate::node::{Node, Nodes};
 use crate::tree_view::RootView;
 
 /// Defines the policy for splitting nodes when they reach the maximum capacity.
@@ -24,6 +24,7 @@ pub enum SplitPolicy {
 #[derive(Debug)]
 pub struct RTree<T, const N: usize> {
     pub(crate) root: Node<T, N>,
+    pub(crate) nodes: Nodes<T, N>,
     split_policy: SplitPolicy,
     capacity: usize,
     length: usize,
@@ -31,8 +32,11 @@ pub struct RTree<T, const N: usize> {
 
 impl<T, const N: usize> Default for RTree<T, N> {
     fn default() -> Self {
+        let mut nodes = Nodes::new(Self::DEFAULT_CAPACITY, std::fs::File::create("nodes").unwrap());
+        let root = nodes.new_node(vec![]);
         Self {
-            root: Node::new_node(vec![]),
+            root,
+            nodes,
             split_policy: Self::DEFAULT_SPLIT_POLICY,
             capacity: Self::DEFAULT_CAPACITY,
             length: 0,
@@ -86,7 +90,7 @@ impl<T, const N: usize> RTree<T, N> {
     /// Insert a new bounding box with data into the tree.
     /// If there was an old value in this exact bounding box, it is returned.
     pub fn insert(&mut self, bbox: BoundingBox<N>, data: T) -> Option<T> {
-        if let Some(old) = self.root.insert(bbox, data, self.capacity, &self.split_policy) {
+        if let Some(old) = self.root.insert(bbox, data, self.capacity, &self.split_policy, &mut self.nodes) {
             Some(old)
         } else {
             self.length += 1;

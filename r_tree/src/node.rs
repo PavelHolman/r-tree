@@ -1,56 +1,118 @@
+use std::io::{Read, Seek, Write};
+
+use bincode::{deserialize, serialize};
+
 use crate::bounding_box::BoundingBox;
 use crate::iterators::{LeafIter, NearestNeighborIter, SearchIter};
 use crate::tree::SplitPolicy;
 
+pub(crate) type NodeId = usize;
+
 #[derive(Debug)]
 pub(crate) enum Data<T, const N: usize> {
     Leaf(T),
-    Inner(Vec<Node<T, N>>),
+    Inner(Vec<NodeId>),
 }
 
 #[derive(Debug)]
 pub(crate) struct Node<T, const N: usize> {
+    pub(crate) id: NodeId,
     pub(crate) bbox: BoundingBox<N>,
     pub(crate) data: Data<T, N>,
 }
 
-impl<T, const N: usize> Node<T, N> {
-    pub(crate) fn new_leaf(bbox: BoundingBox<N>, data: T) -> Self {
-        Self {
+#[derive(Debug)]
+pub(crate) struct Nodes<T, const N: usize> {
+    cache: Vec<Node<T, N>>,
+    file: std::fs::File,
+    next_id: NodeId,
+    capacity: usize,
+}
+
+impl<T, const N: usize> Nodes<T, N> {
+    pub(crate) fn new(capacity: usize, file: std::fs::File) -> Self {
+        let cache = vec![];
+        let next_id = 0;
+        Self { cache, file, next_id, capacity }
+    }
+
+    fn write_node(&mut self, node: &Node<T, N>) {
+        let offset = node.id * std::mem::size_of::<Node<T, N>>();
+        let encoded_node = serialize(&node).expect("Node serialization failed.");
+
+        self.file.seek(std::io::SeekFrom::Start(offset as u64)).expect("Node write failed.");
+        self.file.write(&encoded_node).expect("Node write failed.");
+    }
+
+    fn read_node(&mut self, id: NodeId) -> &mut Node<T, N> {
+        let offset = id * std::mem::size_of::<Node<T, N>>();
+        self.file.seek(std::io::SeekFrom::Start(offset as u64)).expect("Node read failed.");
+
+        let mut buffer = vec![0; std::mem::size_of::<Node<T, N>>()];
+        self.file.read_exact(&mut buffer).expect("Node read failed.");
+
+        let mut node = deserialize(&buffer).expect("Node deserialization failed.");
+        self.cache.insert(id % self.capacity, node);
+        &mut self.cache.last().unwrap()
+    }
+
+    pub(crate) fn new_leaf(&mut self, bbox: BoundingBox<N>, data: T) -> Node<T, N> {
+        let node = Node {
+            id: self.next_id,
             bbox,
             data: Data::Leaf(data),
-        }
+        };
+        self.next_id += 1;
+        self.write_node(&node);
+        node
     }
 
-    pub(crate) fn new_node(nodes: Vec<Self>) -> Self {
-        Self {
-            bbox: BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>()),
+    pub(crate) fn new_node(&mut self, nodes: Vec<NodeId>) -> Node<T, N> {
+        let bbox = BoundingBox::union(&nodes.iter().map(|id| &self.read_node(*id).bbox).collect::<Vec<_>>());
+        let node = Node {
+            id: self.next_id,
+            bbox,
             data: Data::Inner(nodes),
-        }
+        };
+        self.next_id += 1;
+        self.write_node(&node);
+        node
     }
 
+    pub(crate) fn get_node(&mut self, id: &NodeId) -> &mut Node<T, N> {
+        let node = &mut self.cache.get_mut(*id % self.capacity);
+        if node.as_ref().is_some_and(|node| node.id == *id) {
+            return node.take().unwrap();
+        }
+
+        self.read_node(*id)
+    }
+}
+
+impl<T, const N: usize> Node<T, N> {
     /// Insert a new bounding box with data into the tree.
     /// Returns the old value if it was replaced.
-    pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize, policy: &SplitPolicy) -> Option<T> {
+    pub(crate) fn insert(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize, policy: &SplitPolicy, nodes: &mut Nodes<T, N>) -> Option<T> {
         // TODO: Wrap implementation in a struct with all the parameters to avoid passing them around.
         // The root node could also be treated separately by adding Root kind to Data and avoid the unsafe block.
         // Additionally, no [0,0] bbox would be created for empty root node.
         // I really should consider actually doing this and not keeping this TODO around. :)
-        let (split, old) = self.insert_impl(bbox, data, capacity, &policy);
+        let (split, old) = self.insert_impl(bbox, data, capacity, &policy, nodes);
         if let Some(node) = split {
             unsafe {
                 let old_root = std::ptr::read(self);
-                let new_root = Self::new_node(vec![old_root, node]);
+                let new_root = nodes.new_node(vec![old_root.id, node.id]);
                 std::ptr::write(self, new_root);
             }
-            if let Data::Inner(nodes) = &mut self.data {
-                for node in nodes {
-                    node.shrink();
+            if let Data::Inner(node_ids) = &mut self.data {
+                for node_id in node_ids {
+                    let node = nodes.get_node(node_id);
+                    node.shrink(nodes);
                 }
             }
         }
 
-        self.shrink();
+        self.shrink(nodes);
         old
     }
 
@@ -61,31 +123,33 @@ impl<T, const N: usize> Node<T, N> {
     ///
     /// and
     /// - an old value, if it was replaced.
-    fn insert_impl(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize, policy: &SplitPolicy) -> (Option<Self>, Option<T>) {
+    fn insert_impl(&mut self, bbox: BoundingBox<N>, data: T, capacity: usize, policy: &SplitPolicy, nodes: &mut Nodes<T, N>) -> (Option<Self>, Option<T>) {
         match &mut self.data {
             Data::Leaf(leaf) => {
                 if self.bbox == bbox {
                     return (None, Some(std::mem::replace(leaf, data)));
                 }
-                (Some(Self::new_leaf(bbox, data)), None)
+                (Some(nodes.new_leaf(bbox, data)), None)
             }
-            Data::Inner(nodes) => {
-                if nodes.is_empty() {
-                    nodes.push(Self::new_leaf(bbox, data));
+            Data::Inner(node_ids) => {
+                if node_ids.is_empty() {
+                    let node = nodes.new_leaf(bbox, data);
+                    node_ids.push(node.id);
                     self.bbox = bbox;
                     return (None, None);
                 }
 
-                let best_node = Self::choose_best_node(nodes, &bbox);
+                let best_node_id = Self::choose_best_node(node_ids, &bbox, nodes);
+                let best_node = nodes.get_node(best_node_id);
 
-                let (node_to_add, old) = best_node.insert_impl(bbox, data, capacity, &policy);
+                let (node_to_add, old) = best_node.insert_impl(bbox, data, capacity, &policy, nodes);
 
                 if let Some(node_to_add) = node_to_add {
-                    nodes.push(node_to_add);
+                    node_ids.push(node_to_add.id);
                     self.bbox = BoundingBox::union(&[&self.bbox, &bbox]);
-                    if nodes.len() > capacity {
-                        let other_nodes = Self::split_nodes(nodes, &policy);
-                        self.shrink();
+                    if node_ids.len() > capacity {
+                        let other_nodes = Self::split_nodes(node_ids, &policy);
+                        self.shrink(nodes);
                         return (Some(Self::new_node(other_nodes)), old);
                     }
                 }
@@ -97,15 +161,17 @@ impl<T, const N: usize> Node<T, N> {
     /// Chooses the best node to insert the new bounding box into.
     /// The best node is the one with the smallest increase in area after adding the bounding box.
     /// If the area increase is the same, the node with the least amount of children is chosen.
-    fn choose_best_node<'a>(nodes: &'a mut Vec<Self>, bbox: &BoundingBox<N>) -> &'a mut Node<T, N> {
-        nodes
-            .iter_mut()
-            .min_by_key(|node|
+    fn choose_best_node<'a>(node_ids: &'a Vec<NodeId>, bbox: &BoundingBox<N>, nodes: &mut Nodes<T, N>) -> &'a Node<T, N> {
+        node_ids
+            .iter()
+            .min_by_key(|node_id| {
+                let node = nodes.get_node(node_id);
                 (BoundingBox::union(&[&node.bbox, bbox]).area() - node.bbox.area(),
                  match &node.data {
                      Data::Leaf(_) => 1,
                      Data::Inner(nodes) => nodes.len(),
-                 }))
+                 })
+            })
             .expect("Should be non empty, because leaf should have been inserted for empty.")
     }
 
@@ -182,11 +248,11 @@ impl<T, const N: usize> Node<T, N> {
         }
     }
 
-    fn shrink(&mut self) {
+    fn shrink(&mut self, nodes: &mut Nodes<T, N>) {
         match &mut self.data {
             Data::Leaf(_) => {}
-            Data::Inner(nodes) => {
-                self.bbox = BoundingBox::union(&nodes.iter().map(|node| &node.bbox).collect::<Vec<_>>());
+            Data::Inner(node_ids) => {
+                self.bbox = BoundingBox::union(&node_ids.iter().map(|id| &nodes.get_node(id).bbox).collect::<Vec<_>>());
             }
         }
     }

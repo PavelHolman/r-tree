@@ -2,11 +2,12 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
 use crate::BoundingBox;
-use crate::node::Node;
+use crate::node::{Node, Nodes};
 
 /// Iterator over all leaf nodes in the tree.
 pub struct LeafIter<'a, T, const N: usize> {
     nodes_to_visit: Vec<&'a Node<T, N>>,
+    nodes: Nodes<T, N>,
 }
 
 impl<'a, T, const N: usize> LeafIter<'a, T, N> {

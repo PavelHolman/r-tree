@@ -1,5 +1,5 @@
 use crate::{BoundingBox, RTree};
-use crate::node::{Data, Node};
+use crate::node::{Data, Node, Nodes};
 
 pub struct LeafView<'a, T, const N: usize> {
     pub bbox: &'a BoundingBox<N>,
@@ -21,23 +21,27 @@ pub struct RootView<'a, T, const N: usize> {
 }
 
 impl<'a, T, const N: usize> RootView<'a, T, N> {
-    pub(crate) fn new(tree: &'a RTree<T, N>) -> Self {
-        RootView { nodes: Self::rec(&tree.root) }
+    pub(crate) fn new(tree: &'a mut RTree<T, N>) -> Self {
+        RootView { nodes: Self::rec(&tree.root, &mut tree.nodes) }
     }
 
-    fn rec(node: &'a Node<T, N>) -> NodesView<'a, T, N> {
+    fn rec(node: &'a Node<T, N>, nodes: &mut Nodes<T, N>) -> NodesView<'a, T, N> {
         match &node.data {
             Data::Leaf(leaf) => NodesView::Leaf(
                 LeafView {
                     bbox: &node.bbox,
                     data: leaf,
                 }),
-            Data::Inner(nodes) => {
+            Data::Inner(inner_nodes) => {
                 NodesView::Inners(
-                    nodes.iter().map(|node| NodeView {
-                        bbox: &node.bbox,
-                        nodes: Self::rec(node),
-                    }).collect()
+                    inner_nodes.iter().map(|node_id|
+                        {
+                            let node = nodes.get_node(node_id);
+                            NodeView {
+                                bbox: &node.bbox,
+                                nodes: Self::rec(node, nodes),
+                            }
+                        }).collect()
                 )
             }
         }
