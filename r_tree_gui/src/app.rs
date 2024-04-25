@@ -1,9 +1,29 @@
 use std::{collections::HashMap, iter::repeat};
 
-use egui::{Color32, Slider, Vec2};
-use r_tree::{BoundingBox, RTree};
+use egui::{Color32, ComboBox, Slider, Vec2};
+use r_tree::{BoundingBox, RTree, SplitPolicy};
 
 use crate::{draw_tree, BoundedPainter, Bounds, Highlight};
+
+struct TreeParams {
+    capacity: usize,
+    split_policy: SplitPolicy,
+}
+
+impl TreeParams {
+    fn new(capacity: usize, split_policy: SplitPolicy) -> TreeParams {
+        Self {
+            capacity,
+            split_policy,
+        }
+    }
+}
+
+impl Default for TreeParams {
+    fn default() -> Self {
+        Self::new(4, SplitPolicy::Half)
+    }
+}
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -21,6 +41,9 @@ pub struct TemplateApp {
 
     #[serde(skip)]
     db: RTree<i32, 2>,
+
+    #[serde(skip)]
+    new_tree: TreeParams,
 
     #[serde(skip)]
     error_message: String,
@@ -41,6 +64,7 @@ impl Default for TemplateApp {
             search_box: None,
             db: example_db(),
             error_message: "".into(),
+            new_tree: Default::default(),
         }
     }
 }
@@ -70,7 +94,49 @@ impl TemplateApp {
         self.error_message.clear();
     }
 
+    fn reset_info(&mut self) {
+        self.hide_error();
+        self.highlighted.clear();
+        self.search_box = None;
+    }
+
+    fn tree_builder(&mut self, ui: &mut egui::Ui) {
+        ui.label("New tree");
+        ui.add(Slider::new(&mut self.new_tree.capacity, 0..=32).text("node capacity"));
+
+        ComboBox::from_label("split policy")
+            .selected_text(format!("{:?}", self.new_tree.split_policy))
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.new_tree.split_policy, SplitPolicy::Half, "Half");
+                ui.selectable_value(
+                    &mut self.new_tree.split_policy,
+                    SplitPolicy::Random,
+                    "Random",
+                );
+                ui.selectable_value(
+                    &mut self.new_tree.split_policy,
+                    SplitPolicy::Greedy,
+                    "Greedy",
+                );
+                ui.selectable_value(
+                    &mut self.new_tree.split_policy,
+                    SplitPolicy::BruteForce,
+                    "BruteForce",
+                );
+            });
+
+        if ui.button("Create tree").clicked() {
+            self.reset_info();
+
+            self.db = RTree::with_capacity_and_split_policy(
+                self.new_tree.capacity,
+                self.new_tree.split_policy.clone(),
+            );
+        }
+    }
+
     fn insert_controls(&mut self, ui: &mut egui::Ui) {
+        ui.label("Insert");
         ui.add(Slider::new(&mut self.insertion.min[0], 0..=1200).text("min x"));
         ui.add(Slider::new(&mut self.insertion.min[1], 0..=700).text("min y"));
         ui.separator();
@@ -78,9 +144,7 @@ impl TemplateApp {
         ui.add(Slider::new(&mut self.insertion.max[1], 0..=700).text("max y"));
 
         if ui.button("Insert").clicked() {
-            self.hide_error();
-            self.highlighted.clear();
-            self.search_box = None;
+            self.reset_info();
 
             match BoundingBox::from_points(self.insertion.min, self.insertion.max) {
                 Ok(bbox) => {
@@ -95,6 +159,7 @@ impl TemplateApp {
     }
 
     fn search_controls(&mut self, ui: &mut egui::Ui) {
+        ui.label("Search");
         ui.add(Slider::new(&mut self.search.min[0], 0..=1200).text("min x"));
         ui.add(Slider::new(&mut self.search.min[1], 0..=700).text("min y"));
         ui.separator();
@@ -102,9 +167,7 @@ impl TemplateApp {
         ui.add(Slider::new(&mut self.search.max[1], 0..=700).text("max y"));
 
         if ui.button("Search inside").clicked() {
-            self.hide_error();
-            self.highlighted.clear();
-            self.search_box = None;
+            self.reset_info();
 
             match BoundingBox::from_points(self.search.min, self.search.max) {
                 Ok(bbox) => {
@@ -141,9 +204,11 @@ impl eframe::App for TemplateApp {
             ui.heading("R-Tree");
 
             ui.columns(N_COLUMNS, |columns| {
-                columns[0].vertical(|ui| self.insert_controls(ui));
+                columns[0].vertical(|ui| self.tree_builder(ui));
 
-                columns[1].vertical(|ui| self.search_controls(ui));
+                columns[1].vertical(|ui| self.insert_controls(ui));
+
+                columns[2].vertical(|ui| self.search_controls(ui));
 
                 columns[N_COLUMNS - 1].vertical(|ui| {
                     ui.colored_label(Color32::RED, &self.error_message);

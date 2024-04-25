@@ -19,7 +19,7 @@ pub(crate) struct Node<T, const N: usize> {
 /// - Random: Split the nodes randomly.
 /// - Greedy: Split the two furthest nodes and the rest is added to one of them based on area increase.
 /// - BruteForce: Split the nodes such that the area is minimal by trying all possibilities.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum SplitPolicy {
     Half,
     Random,
