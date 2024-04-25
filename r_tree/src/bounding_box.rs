@@ -1,4 +1,7 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Interval {
     min: u64,
     max: u64,
@@ -24,8 +27,9 @@ impl Interval {
 /// Bounding box implementation for R-Tree.
 /// The bounds are stored as a tuple of (min, max) for each dimension.
 /// The intervals are inclusive on both sides.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BoundingBox<const N: usize> {
+    #[serde(with = "BigArray")]
     pub bounds: [Interval; N],
 }
 

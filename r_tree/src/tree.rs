@@ -1,6 +1,13 @@
+use std::error::Error;
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
+
 use crate::bounding_box::BoundingBox;
 use crate::node::Node;
 use crate::tree_view::RootView;
+
+pub type T = usize;
 
 /// Defines the policy for splitting nodes when they reach the maximum capacity.
 /// The policy can be one of:
@@ -8,7 +15,7 @@ use crate::tree_view::RootView;
 /// - Random: Split the nodes randomly.
 /// - Greedy: Split the two furthest nodes and the rest is added to one of them based on area increase.
 /// - BruteForce: Split the nodes such that the area is minimal by trying all possibilities.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum SplitPolicy {
     Half,
     Random,
@@ -16,20 +23,20 @@ pub enum SplitPolicy {
     BruteForce,
 }
 
-
 /// R-Tree data structure.
 /// Provides insertion, search and nearest neighbor search.
 /// These operation are logarithmic in the number of elements in the tree.
 /// The tree is generic over the data type T and the compile time dimension N of the bounding boxes.
-#[derive(Debug)]
-pub struct RTree<T, const N: usize> {
-    pub(crate) root: Node<T, N>,
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct RTree<const N: usize> {
+    pub(crate) root: Node<N>,
     split_policy: SplitPolicy,
     capacity: usize,
     length: usize,
 }
 
-impl<T, const N: usize> Default for RTree<T, N> {
+impl<const N: usize> Default for RTree<N> {
     fn default() -> Self {
         Self {
             root: Node::new_node(vec![]),
@@ -40,29 +47,29 @@ impl<T, const N: usize> Default for RTree<T, N> {
     }
 }
 
-impl<T, const N: usize> RTree<T, N> {
+impl<const N: usize> RTree<N> {
     const DISK_PAGE_SIZE: usize = 4096;
-    const NODE_SIZE: usize = std::mem::size_of::<Node<T, N>>();
+    const NODE_SIZE: usize = std::mem::size_of::<Node<N>>();
     const DEFAULT_CAPACITY: usize = Self::DISK_PAGE_SIZE / Self::NODE_SIZE;
     const DEFAULT_SPLIT_POLICY: SplitPolicy = if Self::DEFAULT_CAPACITY < 8 { SplitPolicy::BruteForce } else { SplitPolicy::Greedy };
 
     /// Initialize a new R-Tree with a default node capacity optimized for disk pages.
-    pub fn new() -> RTree<T, N> {
+    pub fn new() -> RTree<N> {
         Self::with_capacity_and_split_policy(Self::DEFAULT_CAPACITY, Self::DEFAULT_SPLIT_POLICY)
     }
 
     /// Initialize a new R-Tree with a custom node capacity.
-    pub fn with_capacity(capacity: usize) -> RTree<T, N> {
+    pub fn with_capacity(capacity: usize) -> RTree<N> {
         Self::with_capacity_and_split_policy(capacity, if capacity < 8 { SplitPolicy::BruteForce } else { SplitPolicy::Greedy })
     }
 
     /// Initialize a new R-Tree with a custom split policy.
-    pub fn with_split_policy(split_policy: SplitPolicy) -> RTree<T, N> {
+    pub fn with_split_policy(split_policy: SplitPolicy) -> RTree<N> {
         Self::with_capacity_and_split_policy(Self::DEFAULT_CAPACITY, split_policy)
     }
 
     /// Initialize a new R-Tree with a custom node capacity and split policy.
-    pub fn with_capacity_and_split_policy(capacity: usize, split_policy: SplitPolicy) -> RTree<T, N> {
+    pub fn with_capacity_and_split_policy(capacity: usize, split_policy: SplitPolicy) -> RTree<N> {
         if capacity < 2 {
             panic!("Node capacity has to be at least 2!")
         }
@@ -73,7 +80,7 @@ impl<T, const N: usize> RTree<T, N> {
         }
     }
 
-    pub fn view<'a, 'b>(&'b self) -> RootView<'a, T, N>
+    pub fn view<'a, 'b>(&'b self) -> RootView<'a, N>
         where 'b: 'a {
         RootView::new(&self)
     }
@@ -112,5 +119,16 @@ impl<T, const N: usize> RTree<T, N> {
     /// but the order of elements inside the given bounding box is not defined.
     pub fn nearest<'a>(&'a self, bbox: &'a BoundingBox<N>) -> impl Iterator<Item=(&BoundingBox<N>, &T)> {
         self.root.nearest(bbox)
+    }
+
+    pub fn save(&self, path: &Path) -> Result<(), impl Error> {
+        let mut file = std::fs::File::create(path)?;
+        bincode::serialize_into(&mut file, &self)
+    }
+
+    pub fn load(path: &Path) -> Result<Self, Box<dyn Error>> {
+        let file = std::fs::File::open(path)?;
+        let tree = bincode::deserialize_from(file)?;
+        Ok(tree)
     }
 }

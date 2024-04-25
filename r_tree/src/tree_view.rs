@@ -1,31 +1,32 @@
 use crate::{BoundingBox, RTree};
 use crate::node::{Data, Node};
+use crate::tree::T;
 
-pub struct LeafView<'a, T, const N: usize> {
+pub struct LeafView<'a, const N: usize> {
     pub bbox: &'a BoundingBox<N>,
     pub data: &'a T,
 }
 
-pub struct NodeView<'a, T, const N: usize> {
+pub struct NodeView<'a, const N: usize> {
     pub bbox: &'a BoundingBox<N>,
-    pub nodes: NodesView<'a, T, N>,
+    pub nodes: NodesView<'a, N>,
 }
 
-pub enum NodesView<'a, T, const N: usize> {
-    Leaf(LeafView<'a, T, N>),
-    Inners(Vec<NodeView<'a, T, N>>),
+pub enum NodesView<'a, const N: usize> {
+    Leaf(LeafView<'a, N>),
+    Inners(Vec<NodeView<'a, N>>),
 }
 
-pub struct RootView<'a, T, const N: usize> {
-    pub nodes: NodesView<'a, T, N>,
+pub struct RootView<'a, const N: usize> {
+    pub nodes: NodesView<'a, N>,
 }
 
-impl<'a, T, const N: usize> RootView<'a, T, N> {
-    pub(crate) fn new(tree: &'a RTree<T, N>) -> Self {
+impl<'a, const N: usize> RootView<'a, N> {
+    pub(crate) fn new(tree: &'a RTree<N>) -> Self {
         RootView { nodes: Self::rec(&tree.root) }
     }
 
-    fn rec(node: &'a Node<T, N>) -> NodesView<'a, T, N> {
+    fn rec(node: &'a Node<N>) -> NodesView<'a, N> {
         match &node.data {
             Data::Leaf(leaf) => NodesView::Leaf(
                 LeafView {
