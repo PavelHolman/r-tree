@@ -126,9 +126,8 @@ impl<const N: usize> RTree<N> {
         bincode::serialize_into(&mut file, &self)
     }
 
-    pub fn load(path: &Path) -> Result<Self, Box<dyn Error>> {
+    pub fn load(path: &Path) -> Result<Self, impl Error> {
         let file = std::fs::File::open(path)?;
-        let tree = bincode::deserialize_from(file)?;
-        Ok(tree)
+        bincode::deserialize_from(file)
     }
 }
