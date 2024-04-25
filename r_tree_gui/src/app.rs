@@ -27,6 +27,12 @@ impl Default for TreeParams {
     }
 }
 
+enum TreeDimension {
+    Two(RTree<i32, 2>),
+    Three,
+    Four,
+}
+
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct TemplateApp {
@@ -43,7 +49,12 @@ pub struct TemplateApp {
     search_box: Option<BoundingBox<2>>,
 
     #[serde(skip)]
-    db: RTree<i32, 2>,
+    tree_dimension: TreeDimension,
+
+    #[serde(skip)]
+    db_3d: RTree<i32, 3>,
+    #[serde(skip)]
+    db_4d: RTree<i32, 4>,
 
     #[serde(skip)]
     new_tree: TreeParams,
@@ -66,7 +77,9 @@ impl Default for TemplateApp {
             new_value: 420,
             highlighted: HashMap::new(),
             search_box: None,
-            db: RTree::new(),
+            tree_dimension: TreeDimension::Two(RTree::new()),
+            db_3d: RTree::new(),
+            db_4d: RTree::new(),
             error_message: "".into(),
             new_tree: Default::default(),
         }
@@ -110,7 +123,9 @@ impl TemplateApp {
         ComboBox::from_label("node dimension")
             .selected_text(self.new_tree.dimension.to_string())
             .show_ui(ui, |ui| {
-                ui.selectable_value(&mut self.new_tree.dimension, 2, "2");
+                for dim in 2..=4 {
+                    ui.selectable_value(&mut self.new_tree.dimension, dim, dim.to_string());
+                }
             });
 
         ui.add(Slider::new(&mut self.new_tree.capacity, 2..=16).text("node capacity"));
@@ -139,10 +154,29 @@ impl TemplateApp {
         if ui.button("Create tree").clicked() {
             self.reset_info();
 
-            self.db = RTree::with_capacity_and_split_policy(
-                self.new_tree.capacity,
-                self.new_tree.split_policy.clone(),
-            );
+            match &self.tree_dimension {
+                TreeDimension::Two(_) => {
+                    self.tree_dimension =
+                        TreeDimension::Two(RTree::with_capacity_and_split_policy(
+                            self.new_tree.capacity,
+                            self.new_tree.split_policy.clone(),
+                        ));
+                }
+                TreeDimension::Three => {
+                    self.tree_dimension = TreeDimension::Three;
+                    self.db_3d = RTree::with_capacity_and_split_policy(
+                        self.new_tree.capacity,
+                        self.new_tree.split_policy.clone(),
+                    );
+                }
+                TreeDimension::Four => {
+                    self.tree_dimension = TreeDimension::Four;
+                    self.db_4d = RTree::with_capacity_and_split_policy(
+                        self.new_tree.capacity,
+                        self.new_tree.split_policy.clone(),
+                    );
+                }
+            }
         }
     }
 
@@ -159,10 +193,13 @@ impl TemplateApp {
             self.reset_info();
 
             match BoundingBox::from_points(self.insertion_bounds.min, self.insertion_bounds.max) {
-                Ok(bbox) => {
-                    self.highlighted.insert(bbox, Highlight::Leaf);
-                    self.db.insert(bbox, self.new_value);
-                }
+                Ok(bbox) => match &mut self.tree_dimension {
+                    TreeDimension::Two(db) => {
+                        self.highlighted.insert(bbox, Highlight::Leaf);
+                        db.insert(bbox, self.new_value);
+                    }
+                    _ => todo!("Insertion into higher dimension rtrees"),
+                },
                 Err(err) => {
                     self.show_error(err);
                 }
@@ -182,15 +219,17 @@ impl TemplateApp {
             self.reset_info();
 
             match BoundingBox::from_points(self.search_bounds.min, self.search_bounds.max) {
-                Ok(bbox) => {
-                    self.highlighted = self
-                        .db
-                        .search(&bbox)
-                        .map(|(bbox, _val)| *bbox)
-                        .zip(repeat(Highlight::Leaf))
-                        .collect();
-                    self.search_box = Some(bbox);
-                }
+                Ok(bbox) => match &mut self.tree_dimension {
+                    TreeDimension::Two(db) => {
+                        self.highlighted = db
+                            .search(&bbox)
+                            .map(|(bbox, _val)| *bbox)
+                            .zip(repeat(Highlight::Leaf))
+                            .collect();
+                        self.search_box = Some(bbox);
+                    }
+                    _ => todo!("Searching in higher dimension rtrees"),
+                },
                 Err(err) => {
                     self.show_error(err);
                 }
@@ -233,12 +272,14 @@ impl eframe::App for TemplateApp {
 
             ui.separator();
 
-            let (response, painter) =
-                ui.allocate_painter(Vec2::new(1280.0, 720.0), egui::Sense::click());
-            let painter = BoundedPainter::new(painter, response.rect);
-            draw_tree(painter, &self.db, &self.highlighted, self.search_box);
+            if let TreeDimension::Two(db) = &self.tree_dimension {
+                let (response, painter) =
+                    ui.allocate_painter(Vec2::new(1280.0, 720.0), egui::Sense::click());
+                let painter = BoundedPainter::new(painter, response.rect);
+                draw_tree(painter, &db, &self.highlighted, self.search_box);
 
-            ui.separator();
+                ui.separator();
+            }
         });
     }
 }
