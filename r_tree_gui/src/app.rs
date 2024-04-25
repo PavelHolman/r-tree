@@ -1,18 +1,23 @@
-use std::collections::HashSet;
+use std::{collections::HashMap, iter::repeat};
 
 use egui::{Color32, Slider, Vec2};
 use r_tree::{BoundingBox, RTree};
 
-use crate::{draw_tree, BoundedPainter};
+use crate::{draw_tree, BoundedPainter, Bounds, Highlight};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct TemplateApp {
-    min: [u64; 2],
-    max: [u64; 2],
+    #[serde(skip)]
+    insertion: Bounds,
+    #[serde(skip)]
+    search: Bounds,
 
     #[serde(skip)]
-    highlighted: HashSet<BoundingBox<2>>,
+    highlighted: HashMap<BoundingBox<2>, Highlight>,
+
+    #[serde(skip)]
+    search_box: Option<BoundingBox<2>>,
 
     #[serde(skip)]
     db: RTree<i32, 2>,
@@ -24,9 +29,16 @@ pub struct TemplateApp {
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            min: [0, 0],
-            max: [100, 100],
-            highlighted: HashSet::new(),
+            insertion: Bounds {
+                min: [0, 0],
+                max: [100, 100],
+            },
+            search: Bounds {
+                min: [0, 0],
+                max: [100, 100],
+            },
+            highlighted: HashMap::new(),
+            search_box: None,
             db: example_db(),
             error_message: "".into(),
         }
@@ -57,7 +69,62 @@ impl TemplateApp {
     fn hide_error(&mut self) {
         self.error_message.clear();
     }
+
+    fn insert_controls(&mut self, ui: &mut egui::Ui) {
+        ui.add(Slider::new(&mut self.insertion.min[0], 0..=1200).text("min x"));
+        ui.add(Slider::new(&mut self.insertion.min[1], 0..=700).text("min y"));
+        ui.separator();
+        ui.add(Slider::new(&mut self.insertion.max[0], 0..=1200).text("max x"));
+        ui.add(Slider::new(&mut self.insertion.max[1], 0..=700).text("max y"));
+
+        if ui.button("Insert").clicked() {
+            self.hide_error();
+            self.highlighted.clear();
+            self.search_box = None;
+
+            match BoundingBox::from_points(self.insertion.min, self.insertion.max) {
+                Ok(bbox) => {
+                    self.highlighted.insert(bbox, Highlight::Leaf);
+                    self.db.insert(bbox, 420);
+                }
+                Err(err) => {
+                    self.show_error(err);
+                }
+            }
+        }
+    }
+
+    fn search_controls(&mut self, ui: &mut egui::Ui) {
+        ui.add(Slider::new(&mut self.search.min[0], 0..=1200).text("min x"));
+        ui.add(Slider::new(&mut self.search.min[1], 0..=700).text("min y"));
+        ui.separator();
+        ui.add(Slider::new(&mut self.search.max[0], 0..=1200).text("max x"));
+        ui.add(Slider::new(&mut self.search.max[1], 0..=700).text("max y"));
+
+        if ui.button("Search inside").clicked() {
+            self.hide_error();
+            self.highlighted.clear();
+            self.search_box = None;
+
+            match BoundingBox::from_points(self.search.min, self.search.max) {
+                Ok(bbox) => {
+                    self.highlighted = self
+                        .db
+                        .search(&bbox)
+                        .map(|(bbox, _val)| *bbox)
+                        .zip(repeat(Highlight::Leaf))
+                        .collect();
+                    self.search_box = Some(bbox);
+                }
+                Err(err) => {
+                    self.show_error(err);
+                }
+            }
+        }
+    }
 }
+
+const N_COLUMNS: usize = 8;
 
 impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
@@ -73,54 +140,22 @@ impl eframe::App for TemplateApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("R-Tree");
 
-            ui.columns(8, |columns| {
-                columns[0].vertical(|ui| {
-                    ui.add(Slider::new(&mut self.min[0], 0..=1200).text("min x"));
-                    ui.add(Slider::new(&mut self.min[1], 0..=700).text("min y"));
-                    ui.separator();
-                    ui.add(Slider::new(&mut self.max[0], 0..=1200).text("max x"));
-                    ui.add(Slider::new(&mut self.max[1], 0..=700).text("max y"));
-                });
+            ui.columns(N_COLUMNS, |columns| {
+                columns[0].vertical(|ui| self.insert_controls(ui));
 
-                columns[1].vertical(|ui| {
+                columns[1].vertical(|ui| self.search_controls(ui));
+
+                columns[N_COLUMNS - 1].vertical(|ui| {
                     ui.colored_label(Color32::RED, &self.error_message);
                 });
             });
-
-            if ui.button("Insert").clicked() {
-                self.highlighted.clear();
-                match BoundingBox::from_points(self.min, self.max) {
-                    Ok(bbox) => {
-                        self.hide_error();
-                        self.highlighted.insert(bbox);
-                        self.db.insert(bbox, 420);
-                    }
-                    Err(err) => {
-                        self.show_error(err);
-                    }
-                }
-            }
-
-            if ui.button("Search inside").clicked() {
-                self.highlighted.clear();
-                match BoundingBox::from_points(self.min, self.max) {
-                    Ok(bbox) => {
-                        self.hide_error();
-                        self.highlighted =
-                            self.db.search(&bbox).map(|(bbox, _val)| *bbox).collect();
-                    }
-                    Err(err) => {
-                        self.show_error(err);
-                    }
-                }
-            }
 
             ui.separator();
 
             let (response, painter) =
                 ui.allocate_painter(Vec2::new(1280.0, 720.0), egui::Sense::click());
             let painter = BoundedPainter::new(painter, response.rect);
-            draw_tree(painter, &self.db, &self.highlighted);
+            draw_tree(painter, &self.db, &self.highlighted, self.search_box);
 
             ui.separator();
         });
