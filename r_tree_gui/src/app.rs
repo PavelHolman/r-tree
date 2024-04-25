@@ -1,7 +1,7 @@
 use std::{collections::HashMap, iter::repeat};
 
 use egui::{Color32, ComboBox, DragValue, Slider, Vec2};
-use r_tree::{BoundingBox, RTree, SplitPolicy};
+use r_tree::{BoundingBox, RTree, SplitPolicy, T};
 
 use crate::{draw_tree, BoundedPainter, Bounds, Highlight};
 
@@ -28,7 +28,7 @@ impl Default for TreeParams {
 }
 
 enum TreeDimension {
-    Two(RTree<i32, 2>),
+    Two(RTree<2>),
     Three,
     Four,
 }
@@ -52,9 +52,9 @@ pub struct TemplateApp {
     tree_dimension: TreeDimension,
 
     #[serde(skip)]
-    db_3d: RTree<i32, 3>,
+    db_3d: RTree<3>,
     #[serde(skip)]
-    db_4d: RTree<i32, 4>,
+    db_4d: RTree<4>,
 
     #[serde(skip)]
     new_tree: TreeParams,
@@ -196,7 +196,7 @@ impl TemplateApp {
                 Ok(bbox) => match &mut self.tree_dimension {
                     TreeDimension::Two(db) => {
                         self.highlighted.insert(bbox, Highlight::Leaf);
-                        db.insert(bbox, self.new_value);
+                        db.insert(bbox, self.new_value as T);
                     }
                     _ => todo!("Insertion into higher dimension rtrees"),
                 },
