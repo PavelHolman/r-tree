@@ -1,7 +1,9 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 pub use app::TemplateApp;
-use egui::{layers::ShapeIdx, Color32, Painter, Pos2, Rect, Rounding, Stroke};
+use egui::{
+    layers::ShapeIdx, Align2, Color32, FontFamily, FontId, Painter, Pos2, Rect, Rounding, Stroke,
+};
 use r_tree::{BoundingBox, RTree};
 use std::{collections::HashSet, fmt::Display};
 
@@ -15,6 +17,42 @@ struct BoundedPainter {
 const STROKE_WIDTH: f32 = 2.;
 const HIGHLIGHTED_STROKE_WIDTH: f32 = 2. * STROKE_WIDTH;
 const ROUNDING: f32 = 0.;
+const FONT_SIZE: f32 = 14.;
+
+enum Highlight {
+    None,
+    Leaf,
+}
+
+#[derive(Debug)]
+struct NormalizedRect {
+    inner_rect: Rect,
+}
+
+impl NormalizedRect {
+    fn new(rect: Rect, bounding_box: Rect) -> NormalizedRect {
+        let (min, _max) = (bounding_box.min.to_vec2(), bounding_box.max.to_vec2());
+        let normalized = Rect::from_min_max(rect.min + min, rect.max + min);
+
+        if !bounding_box.contains_rect(normalized) {
+            unimplemented!("BoundingBox too large to visualize");
+        }
+
+        Self {
+            inner_rect: normalized,
+        }
+    }
+
+    fn center(&self) -> Pos2 {
+        self.inner_rect.center()
+    }
+}
+
+impl Into<Rect> for NormalizedRect {
+    fn into(self) -> Rect {
+        self.inner_rect
+    }
+}
 
 impl BoundedPainter {
     fn new(painter: Painter, bounding_box: Rect) -> Self {
@@ -24,40 +62,38 @@ impl BoundedPainter {
         }
     }
 
-    fn normalize(rect: Rect, bounding_box: &Rect) -> Rect {
-        let (min, _max) = (bounding_box.min.to_vec2(), bounding_box.max.to_vec2());
-        let normalized = Rect::from_min_max(rect.min + min, rect.max + min);
-
-        if !bounding_box.contains_rect(normalized) {
-            unimplemented!("BoundingBox too large to visualize");
-        }
-
-        normalized
-    }
-
     fn rect(
         &self,
-        rect: Rect,
+        rect: NormalizedRect,
         rounding: impl Into<Rounding>,
         stroke: impl Into<Stroke>,
     ) -> ShapeIdx {
-        let rect = Self::normalize(rect, &self.bounding_box);
-        self.painter.rect_stroke(rect, rounding, stroke)
+        self.painter.rect_stroke(rect.into(), rounding, stroke)
     }
 
-    fn draw_leaf<T>(&self, rect: Rect, data: T, highlighted: bool)
+    fn draw_leaf<T>(&self, rect: Rect, data: &T, highlight: Highlight)
     where
-        T: Display,
+        T: ToString + Display,
     {
-        if !highlighted {
-            self.rect(rect, ROUNDING, Stroke::new(STROKE_WIDTH, Color32::WHITE))
-        } else {
-            self.rect(
-                rect,
-                ROUNDING,
-                Stroke::new(HIGHLIGHTED_STROKE_WIDTH, Color32::GREEN),
-            )
+        let rect = NormalizedRect::new(rect, self.bounding_box);
+
+        let (stroke_width, stroke_color) = match highlight {
+            Highlight::Leaf => (HIGHLIGHTED_STROKE_WIDTH, Color32::GREEN),
+            Highlight::None => (STROKE_WIDTH, Color32::WHITE),
         };
+
+        let rect_center = rect.center();
+        let font_id = FontId::new(FONT_SIZE, FontFamily::default());
+
+        self.painter.text(
+            rect_center,
+            Align2::CENTER_CENTER,
+            data,
+            font_id,
+            stroke_color,
+        );
+
+        self.rect(rect, ROUNDING, Stroke::new(stroke_width, stroke_color));
     }
 }
 
@@ -72,13 +108,18 @@ pub(crate) fn draw_tree<T>(
     tree: &RTree<T, 2>,
     highlighted: &HashSet<BoundingBox<2>>,
 ) where
-    T: Display,
+    T: ToString + Display,
 {
     // TODO: visualize data in each bbox
     // TODO: visualize not only leaves, but all nodes
     // TODO: GUI interface for extended insertion, split policy choice etc.
     for (bbox, data) in tree.iter() {
         let rect = to_rect(bbox);
-        painter.draw_leaf(rect, data, highlighted.contains(bbox));
+        let highlight = match highlighted.contains(bbox) {
+            true => Highlight::Leaf,
+            _ => Highlight::None,
+        };
+
+        painter.draw_leaf(rect, &data, highlight);
     }
 }
