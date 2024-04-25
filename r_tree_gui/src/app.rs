@@ -6,13 +6,15 @@ use r_tree::{BoundingBox, RTree, SplitPolicy};
 use crate::{draw_tree, BoundedPainter, Bounds, Highlight};
 
 struct TreeParams {
+    dimension: u8,
     capacity: usize,
     split_policy: SplitPolicy,
 }
 
 impl TreeParams {
-    fn new(capacity: usize, split_policy: SplitPolicy) -> TreeParams {
+    fn new(dimension: u8, capacity: usize, split_policy: SplitPolicy) -> TreeParams {
         Self {
+            dimension,
             capacity,
             split_policy,
         }
@@ -21,7 +23,7 @@ impl TreeParams {
 
 impl Default for TreeParams {
     fn default() -> Self {
-        Self::new(4, SplitPolicy::Half)
+        Self::new(2, 4, SplitPolicy::Half)
     }
 }
 
@@ -104,7 +106,14 @@ impl TemplateApp {
 
     fn tree_builder(&mut self, ui: &mut egui::Ui) {
         ui.label("New tree");
-        ui.add(Slider::new(&mut self.new_tree.capacity, 2..=32).text("node capacity"));
+
+        ComboBox::from_label("node dimension")
+            .selected_text(self.new_tree.dimension.to_string())
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.new_tree.dimension, 2, "2");
+            });
+
+        ui.add(Slider::new(&mut self.new_tree.capacity, 2..=16).text("node capacity"));
 
         ComboBox::from_label("split policy")
             .selected_text(format!("{:?}", self.new_tree.split_policy))
