@@ -4,11 +4,12 @@ pub use app::TemplateApp;
 use egui::{
     layers::ShapeIdx, Align2, Color32, FontFamily, FontId, Painter, Pos2, Rect, Rounding, Stroke,
 };
-use r_tree::{BoundingBox, RTree};
+use r_tree::{BoundingBox, NodeView, NodesView, RTree};
 use std::{collections::HashMap, fmt::Display};
 
 mod app;
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct Bounds {
     min: [u64; 2],
     max: [u64; 2],
@@ -19,15 +20,12 @@ pub(crate) enum Highlight {
     None,
     Search,
     Leaf,
-}
-
-struct BoundedPainter {
-    painter: Painter,
-    bounding_box: Rect,
+    Node(u32),
 }
 
 const STROKE_WIDTH: f32 = 2.;
-const HIGHLIGHTED_STROKE_WIDTH: f32 = 2. * STROKE_WIDTH;
+const NODE_STROKE_WIDTH: f32 = 3.;
+const HIGHLIGHTED_STROKE_WIDTH: f32 = 4.;
 const ROUNDING: f32 = 0.;
 const FONT_SIZE: f32 = 14.;
 
@@ -61,11 +59,18 @@ impl Into<Rect> for NormalizedRect {
     }
 }
 
+struct BoundedPainter {
+    painter: Painter,
+    bounding_box: Rect,
+    font_id: FontId,
+}
+
 impl BoundedPainter {
     fn new(painter: Painter, bounding_box: Rect) -> Self {
         BoundedPainter {
             painter,
             bounding_box,
+            font_id: FontId::new(FONT_SIZE, FontFamily::default()),
         }
     }
 
@@ -80,15 +85,25 @@ impl BoundedPainter {
 
     fn apply_highlight(highlight: Highlight) -> (f32, Color32) {
         match highlight {
+            Highlight::None => (STROKE_WIDTH, Color32::WHITE),
             Highlight::Leaf => (HIGHLIGHTED_STROKE_WIDTH, Color32::GREEN),
             Highlight::Search => (HIGHLIGHTED_STROKE_WIDTH, Color32::YELLOW),
-            Highlight::None => (STROKE_WIDTH, Color32::WHITE),
+            Highlight::Node(depth) => (
+                NODE_STROKE_WIDTH,
+                match depth % 4 {
+                    0 => Color32::YELLOW,
+                    1 => Color32::from_rgb(127, 0, 255), // violet
+                    2 => Color32::from_rgb(255, 95, 31), // orange
+                    3 => Color32::LIGHT_BLUE,
+                    _ => panic!("Unreachable"),
+                },
+            ),
         }
     }
 
     fn draw_rect(&self, rect: Rect, highlight: Highlight) {
         let rect = NormalizedRect::new(rect, self.bounding_box);
-        let (stroke_width, stroke_color) = BoundedPainter::apply_highlight(highlight);
+        let (stroke_width, stroke_color) = Self::apply_highlight(highlight);
 
         self.rect(rect, ROUNDING, Stroke::new(stroke_width, stroke_color));
     }
@@ -98,20 +113,42 @@ impl BoundedPainter {
         T: ToString + Display,
     {
         let rect = NormalizedRect::new(rect, self.bounding_box);
-        let (stroke_width, stroke_color) = BoundedPainter::apply_highlight(highlight);
+        let (stroke_width, stroke_color) = Self::apply_highlight(highlight);
 
         let rect_center = rect.center();
-        let font_id = FontId::new(FONT_SIZE, FontFamily::default());
 
         self.painter.text(
             rect_center,
             Align2::CENTER_CENTER,
             data,
-            font_id,
+            self.font_id.clone(),
             stroke_color,
         );
 
         self.rect(rect, ROUNDING, Stroke::new(stroke_width, stroke_color));
+    }
+
+    fn draw_node_view<T>(&self, node_view: &NodeView<'_, T, 2>, depth: u32)
+    where
+        T: ToString + Display,
+    {
+        let rect = to_rect(node_view.bbox);
+        self.draw_rect(rect, Highlight::Node(depth));
+        self.draw_nodes_view(&node_view.nodes, depth);
+    }
+
+    fn draw_nodes_view<T>(&self, nodes_view: &NodesView<'_, T, 2>, depth: u32)
+    where
+        T: ToString + Display,
+    {
+        match nodes_view {
+            NodesView::Inners(node_views) => {
+                for node_view in node_views.into_iter() {
+                    self.draw_node_view(node_view, depth + 1);
+                }
+            }
+            NodesView::Leaf(_) => (),
+        };
     }
 }
 
@@ -129,8 +166,6 @@ pub(crate) fn draw_tree<T>(
 ) where
     T: ToString + Display,
 {
-    // TODO: visualize data in each bbox
-    // TODO: visualize not only leaves, but all nodes
     // TODO: GUI interface for extended insertion, split policy choice etc.
 
     // draw leaves
@@ -139,6 +174,9 @@ pub(crate) fn draw_tree<T>(
         let highlight = highlighted.get(bbox).unwrap_or(&Highlight::None);
         painter.draw_leaf(rect, &data, *highlight);
     }
+
+    let root = tree.view();
+    painter.draw_nodes_view(&root.nodes, 0);
 
     // draw search box
     if let Some(search_box) = search_box {

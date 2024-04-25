@@ -1,6 +1,6 @@
 use std::{collections::HashMap, iter::repeat};
 
-use egui::{Color32, ComboBox, Slider, Vec2};
+use egui::{Color32, ComboBox, DragValue, Slider, Vec2};
 use r_tree::{BoundingBox, RTree, SplitPolicy};
 
 use crate::{draw_tree, BoundedPainter, Bounds, Highlight};
@@ -28,10 +28,11 @@ impl Default for TreeParams {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct TemplateApp {
-    #[serde(skip)]
-    insertion: Bounds,
-    #[serde(skip)]
-    search: Bounds,
+    insertion_bounds: Bounds,
+
+    new_value: i32,
+
+    search_bounds: Bounds,
 
     #[serde(skip)]
     highlighted: HashMap<BoundingBox<2>, Highlight>,
@@ -52,17 +53,18 @@ pub struct TemplateApp {
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            insertion: Bounds {
+            insertion_bounds: Bounds {
                 min: [0, 0],
-                max: [100, 100],
+                max: [1200, 1200],
             },
-            search: Bounds {
+            search_bounds: Bounds {
                 min: [0, 0],
-                max: [100, 100],
+                max: [1200, 1200],
             },
+            new_value: 420,
             highlighted: HashMap::new(),
             search_box: None,
-            db: example_db(),
+            db: RTree::new(),
             error_message: "".into(),
             new_tree: Default::default(),
         }
@@ -102,7 +104,7 @@ impl TemplateApp {
 
     fn tree_builder(&mut self, ui: &mut egui::Ui) {
         ui.label("New tree");
-        ui.add(Slider::new(&mut self.new_tree.capacity, 0..=32).text("node capacity"));
+        ui.add(Slider::new(&mut self.new_tree.capacity, 2..=32).text("node capacity"));
 
         ComboBox::from_label("split policy")
             .selected_text(format!("{:?}", self.new_tree.split_policy))
@@ -137,19 +139,20 @@ impl TemplateApp {
 
     fn insert_controls(&mut self, ui: &mut egui::Ui) {
         ui.label("Insert");
-        ui.add(Slider::new(&mut self.insertion.min[0], 0..=1200).text("min x"));
-        ui.add(Slider::new(&mut self.insertion.min[1], 0..=700).text("min y"));
+        ui.add(Slider::new(&mut self.insertion_bounds.min[0], 0..=1200).text("min x"));
+        ui.add(Slider::new(&mut self.insertion_bounds.min[1], 0..=700).text("min y"));
         ui.separator();
-        ui.add(Slider::new(&mut self.insertion.max[0], 0..=1200).text("max x"));
-        ui.add(Slider::new(&mut self.insertion.max[1], 0..=700).text("max y"));
+        ui.add(Slider::new(&mut self.insertion_bounds.max[0], 0..=1200).text("max x"));
+        ui.add(Slider::new(&mut self.insertion_bounds.max[1], 0..=700).text("max y"));
+        ui.add(DragValue::new(&mut self.new_value).speed(10));
 
         if ui.button("Insert").clicked() {
             self.reset_info();
 
-            match BoundingBox::from_points(self.insertion.min, self.insertion.max) {
+            match BoundingBox::from_points(self.insertion_bounds.min, self.insertion_bounds.max) {
                 Ok(bbox) => {
                     self.highlighted.insert(bbox, Highlight::Leaf);
-                    self.db.insert(bbox, 420);
+                    self.db.insert(bbox, self.new_value);
                 }
                 Err(err) => {
                     self.show_error(err);
@@ -160,16 +163,16 @@ impl TemplateApp {
 
     fn search_controls(&mut self, ui: &mut egui::Ui) {
         ui.label("Search");
-        ui.add(Slider::new(&mut self.search.min[0], 0..=1200).text("min x"));
-        ui.add(Slider::new(&mut self.search.min[1], 0..=700).text("min y"));
+        ui.add(Slider::new(&mut self.search_bounds.min[0], 0..=1200).text("min x"));
+        ui.add(Slider::new(&mut self.search_bounds.min[1], 0..=700).text("min y"));
         ui.separator();
-        ui.add(Slider::new(&mut self.search.max[0], 0..=1200).text("max x"));
-        ui.add(Slider::new(&mut self.search.max[1], 0..=700).text("max y"));
+        ui.add(Slider::new(&mut self.search_bounds.max[0], 0..=1200).text("max x"));
+        ui.add(Slider::new(&mut self.search_bounds.max[1], 0..=700).text("max y"));
 
         if ui.button("Search inside").clicked() {
             self.reset_info();
 
-            match BoundingBox::from_points(self.search.min, self.search.max) {
+            match BoundingBox::from_points(self.search_bounds.min, self.search_bounds.max) {
                 Ok(bbox) => {
                     self.highlighted = self
                         .db
@@ -210,6 +213,10 @@ impl eframe::App for TemplateApp {
 
                 columns[2].vertical(|ui| self.search_controls(ui));
 
+                if columns[3].button("Reset highlight").clicked() {
+                    self.reset_info();
+                }
+
                 columns[N_COLUMNS - 1].vertical(|ui| {
                     ui.colored_label(Color32::RED, &self.error_message);
                 });
@@ -225,36 +232,4 @@ impl eframe::App for TemplateApp {
             ui.separator();
         });
     }
-}
-
-fn example_db() -> RTree<i32, 2> {
-    let mut db = RTree::with_capacity(4);
-
-    type BBox = BoundingBox<2>;
-
-    let (p0, m0) = (BBox::from_points([0, 0], [0, 0]), 0);
-    let (p1, m1) = (BBox::from_points([0, 0], [10, 10]), 1);
-    let (p2, m2) = (BBox::from_points([0, 0], [20, 20]), 2);
-    let (p3, m3) = (BBox::from_points([0, 0], [30, 30]), 3);
-
-    db.insert(p0.unwrap(), m0);
-    db.insert(p1.unwrap(), m1);
-    db.insert(p2.unwrap(), m2);
-    db.insert(p3.unwrap(), m3);
-
-    let (p4, m4) = (BBox::from_points([0, 0], [40, 40]), 4);
-    let (p6, m6) = (BBox::from_points([0, 0], [60, 60]), 6);
-    let (p8, m8) = (BBox::from_points([0, 0], [80, 80]), 8);
-    let (p9, m9) = (BBox::from_points([20, 30], [100, 90]), 8);
-
-    db.insert(p4.unwrap(), m4);
-    db.insert(p6.unwrap(), m6);
-    db.insert(p8.unwrap(), m8);
-    db.insert(p9.unwrap(), m9);
-
-    for (bbox, data) in db.iter() {
-        println!("bbox: {:?}, data: {}", bbox, data);
-    }
-
-    db
 }
