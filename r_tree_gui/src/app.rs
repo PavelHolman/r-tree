@@ -43,6 +43,10 @@ pub struct GUIApp {
 
     search_bounds: Bounds,
 
+    nearest_bounds: Bounds,
+
+    k_nearest: u8,
+
     #[serde(skip)]
     highlighted: HashMap<BoundingBox<2>, Highlight>,
 
@@ -74,7 +78,12 @@ impl Default for GUIApp {
                 min: [0, 0],
                 max: [1200, 1200],
             },
+            nearest_bounds: Bounds {
+                min: [0, 0],
+                max: [1200, 1200],
+            },
             new_value: 420,
+            k_nearest: 2,
             highlighted: HashMap::new(),
             search_box: None,
             tree_dimension: TreeDimension::Two(RTree::new()),
@@ -196,7 +205,7 @@ impl GUIApp {
                 Ok(bbox) => match &mut self.tree_dimension {
                     TreeDimension::Two(db) => {
                         self.highlighted.insert(bbox, Highlight::Leaf);
-                        db.insert(bbox, self.new_value as T);
+                        db.insert(bbox, self.new_value);
                     }
                     _ => todo!("Insertion into higher dimension rtrees"),
                 },
@@ -236,6 +245,39 @@ impl GUIApp {
             }
         }
     }
+
+    fn nearest_search_controls(&mut self, ui: &mut egui::Ui) {
+        ui.label("Nearest Neighbors");
+        ui.add(Slider::new(&mut self.nearest_bounds.min[0], 0..=1200).text("min x"));
+        ui.add(Slider::new(&mut self.nearest_bounds.min[1], 0..=700).text("min y"));
+        ui.separator();
+        ui.add(Slider::new(&mut self.nearest_bounds.max[0], 0..=1200).text("max x"));
+        ui.add(Slider::new(&mut self.nearest_bounds.max[1], 0..=700).text("max y"));
+        ui.add(DragValue::new(&mut self.k_nearest).speed(0.1))
+            .on_hover_text("k");
+
+        if ui.button("Find nearest neighbors").clicked() {
+            self.reset_info();
+
+            match BoundingBox::from_points(self.nearest_bounds.min, self.nearest_bounds.max) {
+                Ok(bbox) => match &mut self.tree_dimension {
+                    TreeDimension::Two(db) => {
+                        self.highlighted = db
+                            .nearest(&bbox)
+                            .take(self.k_nearest.into())
+                            .map(|(bbox, _val)| *bbox)
+                            .zip(repeat(Highlight::Leaf))
+                            .collect();
+                        self.search_box = Some(bbox);
+                    }
+                    _ => todo!("Nearest search in higher dimension rtrees"),
+                },
+                Err(err) => {
+                    self.show_error(err);
+                }
+            }
+        }
+    }
 }
 
 const N_COLUMNS: usize = 8;
@@ -261,7 +303,9 @@ impl eframe::App for GUIApp {
 
                 columns[2].vertical(|ui| self.search_controls(ui));
 
-                if columns[3].button("Reset highlight").clicked() {
+                columns[3].vertical(|ui| self.nearest_search_controls(ui));
+
+                if columns[4].button("Reset highlight").clicked() {
                     self.reset_info();
                 }
 
