@@ -6,7 +6,7 @@ use crate::tree::{SplitPolicy, T};
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub(crate) enum Data<const N: usize> {
-    Leaf(usize),
+    Leaf(T),
     Inner(Vec<Node<N>>),
 }
 
