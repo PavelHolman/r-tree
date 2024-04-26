@@ -1,9 +1,9 @@
-use std::{collections::HashMap, iter::repeat};
+use std::{collections::HashMap, iter::repeat, usize};
 
-use egui::{Color32, ComboBox, DragValue, Slider, Vec2};
+use egui::{Color32, ComboBox, DragValue, FontFamily, Slider, Vec2};
 use r_tree::{BoundingBox, RTree, SplitPolicy, T as TreeValueType};
 
-use crate::{draw_tree, BoundedPainter, Bounds, Highlight};
+use crate::{draw_tree, BoundedPainter, Highlight};
 
 struct TreeParams {
     dimension: u8,
@@ -23,29 +23,57 @@ impl TreeParams {
 
 impl Default for TreeParams {
     fn default() -> Self {
-        Self::new(2, 4, SplitPolicy::Half)
+        Self::new(2, 2, SplitPolicy::Half)
     }
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
 enum TreeDimension {
     Two(RTree<2>),
-    Three,
-    Four,
+    Three(RTree<3>),
+}
+struct Bounds<const N: usize> {
+    min: [u64; N],
+    max: [u64; N],
+}
+
+struct BoundGroup<const N: usize> {
+    insertion_bounds: Bounds<N>,
+    search_bounds: Bounds<N>,
+    nearest_bounds: Bounds<N>,
+}
+
+impl<const N: usize> Default for BoundGroup<N> {
+    fn default() -> Self {
+        Self {
+            insertion_bounds: Bounds {
+                min: [0; N],
+                max: [1200; N],
+            },
+            search_bounds: Bounds {
+                min: [0; N],
+                max: [1200; N],
+            },
+            nearest_bounds: Bounds {
+                min: [0; N],
+                max: [1200; N],
+            },
+        }
+    }
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct GUIApp {
-    insertion_bounds: Bounds,
-
     new_value: TreeValueType,
 
-    search_bounds: Bounds,
-
-    nearest_bounds: Bounds,
-
     k_nearest: u8,
+
+    #[serde(skip)]
+    two_d: BoundGroup<2>,
+
+    #[serde(skip)]
+    three_d: BoundGroup<3>,
 
     #[serde(skip)]
     highlighted: HashMap<BoundingBox<2>, Highlight>,
@@ -54,11 +82,6 @@ pub struct GUIApp {
     search_box: Option<BoundingBox<2>>,
 
     tree_dimension: TreeDimension,
-
-    #[serde(skip)]
-    db_3d: RTree<3>,
-    #[serde(skip)]
-    db_4d: RTree<4>,
 
     #[serde(skip)]
     new_tree: TreeParams,
@@ -70,25 +93,13 @@ pub struct GUIApp {
 impl Default for GUIApp {
     fn default() -> Self {
         Self {
-            insertion_bounds: Bounds {
-                min: [0, 0],
-                max: [1200, 1200],
-            },
-            search_bounds: Bounds {
-                min: [0, 0],
-                max: [1200, 1200],
-            },
-            nearest_bounds: Bounds {
-                min: [0, 0],
-                max: [1200, 1200],
-            },
+            two_d: Default::default(),
+            three_d: Default::default(),
             new_value: 420,
             k_nearest: 2,
             highlighted: HashMap::new(),
             search_box: None,
             tree_dimension: TreeDimension::Two(RTree::new()),
-            db_3d: RTree::new(),
-            db_4d: RTree::new(),
             error_message: "".into(),
             new_tree: Default::default(),
         }
@@ -163,52 +174,90 @@ impl GUIApp {
         if ui.button("Create tree").clicked() {
             self.reset_info();
 
-            match &self.tree_dimension {
-                TreeDimension::Two(_) => {
+            match self.new_tree.dimension {
+                2 => {
+                    self.tree_dimension = TreeDimension::Two(RTree::with_capacity_and_split_policy(
+                        self.new_tree.capacity,
+                        self.new_tree.split_policy.clone(),
+                    ))
+                }
+                3 => {
                     self.tree_dimension =
-                        TreeDimension::Two(RTree::with_capacity_and_split_policy(
+                        TreeDimension::Three(RTree::with_capacity_and_split_policy(
                             self.new_tree.capacity,
                             self.new_tree.split_policy.clone(),
-                        ));
+                        ))
                 }
-                TreeDimension::Three => {
-                    self.tree_dimension = TreeDimension::Three;
-                    self.db_3d = RTree::with_capacity_and_split_policy(
-                        self.new_tree.capacity,
-                        self.new_tree.split_policy.clone(),
-                    );
-                }
-                TreeDimension::Four => {
-                    self.tree_dimension = TreeDimension::Four;
-                    self.db_4d = RTree::with_capacity_and_split_policy(
-                        self.new_tree.capacity,
-                        self.new_tree.split_policy.clone(),
-                    );
-                }
-            }
+                n => unimplemented!(
+                    "For purposes of the GUI, R-Trees must be of dimension 2 or 3, got {n}"
+                ),
+            };
         }
     }
 
     fn insert_controls(&mut self, ui: &mut egui::Ui) {
+        match self.tree_dimension {
+            TreeDimension::Two(_) => self.insert_controls_2d(ui),
+            TreeDimension::Three(_) => self.insert_controls_3d(ui),
+        }
+    }
+
+    fn insert_controls_2d(&mut self, ui: &mut egui::Ui) {
         ui.label("Insert");
-        ui.add(Slider::new(&mut self.insertion_bounds.min[0], 0..=1200).text("min x"));
-        ui.add(Slider::new(&mut self.insertion_bounds.min[1], 0..=700).text("min y"));
+        ui.add(Slider::new(&mut self.two_d.insertion_bounds.min[0], 0..=1200).text("min x"));
+        ui.add(Slider::new(&mut self.two_d.insertion_bounds.min[1], 0..=700).text("min y"));
         ui.separator();
-        ui.add(Slider::new(&mut self.insertion_bounds.max[0], 0..=1200).text("max x"));
-        ui.add(Slider::new(&mut self.insertion_bounds.max[1], 0..=700).text("max y"));
+        ui.add(Slider::new(&mut self.two_d.insertion_bounds.max[0], 0..=1200).text("max x"));
+        ui.add(Slider::new(&mut self.two_d.insertion_bounds.max[1], 0..=700).text("max y"));
         ui.add(DragValue::new(&mut self.new_value).speed(10));
 
         if ui.button("Insert").clicked() {
             self.reset_info();
 
-            match BoundingBox::from_points(self.insertion_bounds.min, self.insertion_bounds.max) {
-                Ok(bbox) => match &mut self.tree_dimension {
-                    TreeDimension::Two(db) => {
-                        self.highlighted.insert(bbox, Highlight::Leaf);
+            match BoundingBox::from_points(
+                self.two_d.insertion_bounds.min,
+                self.two_d.insertion_bounds.max,
+            ) {
+                Ok(bbox) => {
+                    self.highlighted.insert(bbox, Highlight::Leaf);
+                    if let TreeDimension::Two(ref mut db) = self.tree_dimension {
                         db.insert(bbox, self.new_value);
                     }
-                    _ => todo!("Insertion into higher dimension rtrees"),
-                },
+                }
+                Err(err) => {
+                    self.show_error(err);
+                }
+            }
+        }
+    }
+
+    fn insert_controls_3d(&mut self, ui: &mut egui::Ui) {
+        ui.label("Insert");
+        ui.add(Slider::new(&mut self.three_d.insertion_bounds.min[0], 0..=1000).text("min x"));
+        ui.add(Slider::new(&mut self.three_d.insertion_bounds.min[1], 0..=1000).text("min y"));
+        ui.add(Slider::new(&mut self.three_d.insertion_bounds.min[2], 0..=1000).text("min z"));
+        ui.separator();
+        ui.add(Slider::new(&mut self.three_d.insertion_bounds.max[0], 0..=1000).text("max x"));
+        ui.add(Slider::new(&mut self.three_d.insertion_bounds.max[1], 0..=1000).text("max y"));
+        ui.add(Slider::new(&mut self.three_d.insertion_bounds.max[2], 0..=1000).text("max z"));
+        ui.add(DragValue::new(&mut self.new_value).speed(10));
+
+        if ui.button("Insert").clicked() {
+            self.reset_info();
+
+            match BoundingBox::from_points(
+                self.three_d.insertion_bounds.min,
+                self.three_d.insertion_bounds.max,
+            ) {
+                Ok(bbox) => {
+                    if let TreeDimension::Three(ref mut db) = self.tree_dimension {
+                        let old = db.insert(bbox, self.new_value);
+                        match old {
+                            Some(old) => println!("Inserted, replacing value {}", old),
+                            None => println!("Inserted"),
+                        }
+                    }
+                }
                 Err(err) => {
                     self.show_error(err);
                 }
@@ -217,19 +266,29 @@ impl GUIApp {
     }
 
     fn search_controls(&mut self, ui: &mut egui::Ui) {
+        match self.tree_dimension {
+            TreeDimension::Two(_) => self.search_controls_2d(ui),
+            TreeDimension::Three(_) => self.search_controls_3d(ui),
+        }
+    }
+
+    fn search_controls_2d(&mut self, ui: &mut egui::Ui) {
         ui.label("Search");
-        ui.add(Slider::new(&mut self.search_bounds.min[0], 0..=1200).text("min x"));
-        ui.add(Slider::new(&mut self.search_bounds.min[1], 0..=700).text("min y"));
+        ui.add(Slider::new(&mut self.two_d.search_bounds.min[0], 0..=1200).text("min x"));
+        ui.add(Slider::new(&mut self.two_d.search_bounds.min[1], 0..=700).text("min y"));
         ui.separator();
-        ui.add(Slider::new(&mut self.search_bounds.max[0], 0..=1200).text("max x"));
-        ui.add(Slider::new(&mut self.search_bounds.max[1], 0..=700).text("max y"));
+        ui.add(Slider::new(&mut self.two_d.search_bounds.max[0], 0..=1200).text("max x"));
+        ui.add(Slider::new(&mut self.two_d.search_bounds.max[1], 0..=700).text("max y"));
 
         if ui.button("Search inside").clicked() {
             self.reset_info();
 
-            match BoundingBox::from_points(self.search_bounds.min, self.search_bounds.max) {
-                Ok(bbox) => match &mut self.tree_dimension {
-                    TreeDimension::Two(db) => {
+            match BoundingBox::from_points(
+                self.two_d.search_bounds.min,
+                self.two_d.search_bounds.max,
+            ) {
+                Ok(bbox) => {
+                    if let TreeDimension::Two(db) = &self.tree_dimension {
                         self.highlighted = db
                             .search(&bbox)
                             .map(|(bbox, _val)| *bbox)
@@ -237,8 +296,37 @@ impl GUIApp {
                             .collect();
                         self.search_box = Some(bbox);
                     }
-                    _ => todo!("Searching in higher dimension rtrees"),
-                },
+                }
+                Err(err) => {
+                    self.show_error(err);
+                }
+            }
+        }
+    }
+
+    fn search_controls_3d(&mut self, ui: &mut egui::Ui) {
+        ui.label("Search");
+        ui.add(Slider::new(&mut self.three_d.search_bounds.min[0], 0..=1000).text("min x"));
+        ui.add(Slider::new(&mut self.three_d.search_bounds.min[1], 0..=1000).text("min y"));
+        ui.add(Slider::new(&mut self.three_d.search_bounds.min[2], 0..=1000).text("min z"));
+        ui.separator();
+        ui.add(Slider::new(&mut self.three_d.search_bounds.max[0], 0..=1000).text("max x"));
+        ui.add(Slider::new(&mut self.three_d.search_bounds.max[1], 0..=1000).text("max y"));
+        ui.add(Slider::new(&mut self.three_d.search_bounds.max[2], 0..=1000).text("max z"));
+
+        if ui.button("Search inside").clicked() {
+            self.reset_info();
+
+            match BoundingBox::from_points(
+                self.three_d.search_bounds.min,
+                self.three_d.search_bounds.max,
+            ) {
+                Ok(bbox) => {
+                    if let TreeDimension::Three(db) = &self.tree_dimension {
+                        let found: Vec<_> = db.search(&bbox).collect();
+                        println!("Found {:?}", found);
+                    }
+                }
                 Err(err) => {
                     self.show_error(err);
                 }
@@ -247,21 +335,31 @@ impl GUIApp {
     }
 
     fn nearest_search_controls(&mut self, ui: &mut egui::Ui) {
+        match self.tree_dimension {
+            TreeDimension::Two(_) => self.nearest_search_controls_2d(ui),
+            TreeDimension::Three(_) => self.nearest_search_controls_3d(ui),
+        }
+    }
+
+    fn nearest_search_controls_2d(&mut self, ui: &mut egui::Ui) {
         ui.label("Nearest Neighbors");
-        ui.add(Slider::new(&mut self.nearest_bounds.min[0], 0..=1200).text("min x"));
-        ui.add(Slider::new(&mut self.nearest_bounds.min[1], 0..=700).text("min y"));
+        ui.add(Slider::new(&mut self.two_d.nearest_bounds.min[0], 0..=1200).text("min x"));
+        ui.add(Slider::new(&mut self.two_d.nearest_bounds.min[1], 0..=700).text("min y"));
         ui.separator();
-        ui.add(Slider::new(&mut self.nearest_bounds.max[0], 0..=1200).text("max x"));
-        ui.add(Slider::new(&mut self.nearest_bounds.max[1], 0..=700).text("max y"));
+        ui.add(Slider::new(&mut self.two_d.nearest_bounds.max[0], 0..=1200).text("max x"));
+        ui.add(Slider::new(&mut self.two_d.nearest_bounds.max[1], 0..=700).text("max y"));
         ui.add(DragValue::new(&mut self.k_nearest).speed(0.1))
             .on_hover_text("k");
 
         if ui.button("Find nearest neighbors").clicked() {
             self.reset_info();
 
-            match BoundingBox::from_points(self.nearest_bounds.min, self.nearest_bounds.max) {
-                Ok(bbox) => match &mut self.tree_dimension {
-                    TreeDimension::Two(db) => {
+            match BoundingBox::from_points(
+                self.two_d.nearest_bounds.min,
+                self.two_d.nearest_bounds.max,
+            ) {
+                Ok(bbox) => {
+                    if let TreeDimension::Two(db) = &self.tree_dimension {
                         self.highlighted = db
                             .nearest(&bbox)
                             .take(self.k_nearest.into())
@@ -270,8 +368,37 @@ impl GUIApp {
                             .collect();
                         self.search_box = Some(bbox);
                     }
-                    _ => todo!("Nearest search in higher dimension rtrees"),
-                },
+                }
+                Err(err) => {
+                    self.show_error(err);
+                }
+            }
+        }
+    }
+
+    fn nearest_search_controls_3d(&mut self, ui: &mut egui::Ui) {
+        ui.label("Nearest Neighbors");
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.min[0], 0..=1200).text("min x"));
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.min[1], 0..=700).text("min y"));
+        ui.separator();
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.max[0], 0..=1200).text("max x"));
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.max[1], 0..=700).text("max y"));
+        ui.add(DragValue::new(&mut self.k_nearest).speed(0.1))
+            .on_hover_text("k");
+
+        if ui.button("Find nearest neighbors").clicked() {
+            self.reset_info();
+
+            match BoundingBox::from_points(
+                self.three_d.nearest_bounds.min,
+                self.three_d.nearest_bounds.max,
+            ) {
+                Ok(bbox) => {
+                    if let TreeDimension::Three(db) = &self.tree_dimension {
+                        let found: Vec<_> = db.nearest(&bbox).take(self.k_nearest.into()).collect();
+                        println!("Found {:?}", found);
+                    }
+                }
                 Err(err) => {
                     self.show_error(err);
                 }
@@ -316,13 +443,21 @@ impl eframe::App for GUIApp {
 
             ui.separator();
 
+            let (response, painter) =
+                ui.allocate_painter(Vec2::new(1280.0, 720.0), egui::Sense::click());
             if let TreeDimension::Two(db) = &self.tree_dimension {
-                let (response, painter) =
-                    ui.allocate_painter(Vec2::new(1280.0, 720.0), egui::Sense::click());
                 let painter = BoundedPainter::new(painter, response.rect);
                 draw_tree(painter, &db, &self.highlighted, self.search_box);
 
                 ui.separator();
+            } else {
+                painter.text(
+                    response.rect.center(),
+                    egui::Align2::CENTER_CENTER,
+                    "Visualization is only available for trees of dimension 2",
+                    egui::FontId::new(18.0, FontFamily::default()),
+                    Color32::RED,
+                );
             }
         });
     }

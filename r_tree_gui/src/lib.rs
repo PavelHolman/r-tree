@@ -9,12 +9,6 @@ use std::{collections::HashMap, fmt::Display};
 
 mod app;
 
-#[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct Bounds {
-    min: [u64; 2],
-    max: [u64; 2],
-}
-
 #[derive(Copy, Clone)]
 pub(crate) enum Highlight {
     None,
