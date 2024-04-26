@@ -1,5 +1,3 @@
-use std::path::Path;
-
 pub use crate::bounding_box::{BoundingBox, Interval};
 pub use crate::tree::{RTree, SplitPolicy, T};
 pub use crate::tree_view::{NodesView, NodeView};
