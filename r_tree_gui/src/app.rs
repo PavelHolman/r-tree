@@ -36,7 +36,7 @@ enum TreeDimension {
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
-pub struct TemplateApp {
+pub struct GUIApp {
     insertion_bounds: Bounds,
 
     new_value: TreeValueType,
@@ -63,7 +63,7 @@ pub struct TemplateApp {
     error_message: String,
 }
 
-impl Default for TemplateApp {
+impl Default for GUIApp {
     fn default() -> Self {
         Self {
             insertion_bounds: Bounds {
@@ -86,7 +86,7 @@ impl Default for TemplateApp {
     }
 }
 
-impl TemplateApp {
+impl GUIApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -102,7 +102,7 @@ impl TemplateApp {
     }
 }
 
-impl TemplateApp {
+impl GUIApp {
     fn show_error(&mut self, err: &'static str) {
         self.error_message = err.into();
     }
@@ -240,7 +240,7 @@ impl TemplateApp {
 
 const N_COLUMNS: usize = 8;
 
-impl eframe::App for TemplateApp {
+impl eframe::App for GUIApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);

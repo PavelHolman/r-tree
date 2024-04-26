@@ -1,6 +1,6 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
-pub use app::TemplateApp;
+pub use app::GUIApp;
 use egui::{
     layers::ShapeIdx, Align2, Color32, FontFamily, FontId, Painter, Pos2, Rect, Rounding, Stroke,
 };

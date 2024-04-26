@@ -14,7 +14,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "eframe template",
         native_options,
-        Box::new(|cc| Box::new(r_tree_gui::TemplateApp::new(cc))),
+        Box::new(|cc| Box::new(r_tree_gui::GUIApp::new(cc))),
     )
 }
 
@@ -31,7 +31,7 @@ fn main() {
             .start(
                 "the_canvas_id", // hardcode it
                 web_options,
-                Box::new(|cc| Box::new(r_tree_gui::TemplateApp::new(cc))),
+                Box::new(|cc| Box::new(r_tree_gui::GUIApp::new(cc))),
             )
             .await
             .expect("failed to start eframe");
