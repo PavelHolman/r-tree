@@ -1,7 +1,7 @@
 use std::{collections::HashMap, iter::repeat};
 
 use egui::{Color32, ComboBox, DragValue, Slider, Vec2};
-use r_tree::{BoundingBox, RTree, SplitPolicy, T};
+use r_tree::{BoundingBox, RTree, SplitPolicy, T as TreeValueType};
 
 use crate::{draw_tree, BoundedPainter, Bounds, Highlight};
 
@@ -27,6 +27,7 @@ impl Default for TreeParams {
     }
 }
 
+#[derive(serde::Deserialize, serde::Serialize)]
 enum TreeDimension {
     Two(RTree<2>),
     Three,
@@ -38,7 +39,7 @@ enum TreeDimension {
 pub struct TemplateApp {
     insertion_bounds: Bounds,
 
-    new_value: i32,
+    new_value: TreeValueType,
 
     search_bounds: Bounds,
 
@@ -48,7 +49,6 @@ pub struct TemplateApp {
     #[serde(skip)]
     search_box: Option<BoundingBox<2>>,
 
-    #[serde(skip)]
     tree_dimension: TreeDimension,
 
     #[serde(skip)]
