@@ -291,7 +291,7 @@ impl GUIApp {
                     if let TreeDimension::Three(ref mut db) = self.tree_dimension {
                         let old = db.insert(bbox, self.new_value);
                         println!(
-                            "Inserted {} at {}",
+                            "Inserted {: >6} at {}",
                             self.new_value,
                             Self::format_bbox_3d(bbox)
                         );
