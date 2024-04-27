@@ -37,6 +37,31 @@ struct Bounds<const N: usize> {
     max: [u64; N],
 }
 
+struct BoundGroup2d {
+    insertion_bounds: Bounds<2>,
+    search_bounds: Bounds<2>,
+    nearest_bounds: Bounds<2>,
+}
+
+impl Default for BoundGroup2d {
+    fn default() -> Self {
+        Self {
+            insertion_bounds: Bounds {
+                min: [0, 0],
+                max: [1200, 700],
+            },
+            search_bounds: Bounds {
+                min: [0, 0],
+                max: [1200, 700],
+            },
+            nearest_bounds: Bounds {
+                min: [0, 0],
+                max: [1200, 700],
+            },
+        }
+    }
+}
+
 struct BoundGroup<const N: usize> {
     insertion_bounds: Bounds<N>,
     search_bounds: Bounds<N>,
@@ -70,7 +95,7 @@ pub struct GUIApp {
     k_nearest: u8,
 
     #[serde(skip)]
-    two_d: BoundGroup<2>,
+    two_d: BoundGroup2d,
 
     #[serde(skip)]
     three_d: BoundGroup<3>,
@@ -475,12 +500,11 @@ impl eframe::App for GUIApp {
             ui.separator();
 
             let (response, painter) =
-                ui.allocate_painter(Vec2::new(1280.0, 720.0), egui::Sense::click());
+                ui.allocate_painter(Vec2::new(1280., 720.), egui::Sense::click());
+
             if let TreeDimension::Two(db) = &self.tree_dimension {
                 let painter = BoundedPainter::new(painter, response.rect);
                 draw_tree(painter, &db, &self.highlighted, self.search_box);
-
-                ui.separator();
             } else {
                 painter.text(
                     response.rect.center(),
@@ -490,6 +514,8 @@ impl eframe::App for GUIApp {
                     Color32::WHITE,
                 );
             }
+
+            ui.separator();
         });
     }
 }

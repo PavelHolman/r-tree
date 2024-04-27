@@ -34,7 +34,11 @@ impl NormalizedRect {
         let normalized = Rect::from_min_max(rect.min + min, rect.max + min);
 
         if !bounding_box.contains_rect(normalized) {
-            unimplemented!("BoundingBox too large to visualize");
+            unimplemented!(
+                "BoundingBox too large to visualize: {:?} cannot contain {:?}",
+                bounding_box,
+                normalized
+            );
         }
 
         Self {
@@ -152,8 +156,6 @@ pub(crate) fn draw_tree(
     highlighted: &HashMap<BoundingBox<2>, Highlight>,
     search_box: Option<BoundingBox<2>>,
 ) {
-    // TODO: GUI interface for extended insertion, split policy choice etc.
-
     // draw leaves
     for (bbox, data) in tree.iter() {
         let rect = to_rect(bbox);
