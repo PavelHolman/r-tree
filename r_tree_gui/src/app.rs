@@ -1,7 +1,7 @@
 use std::{collections::HashMap, iter::repeat, usize};
 
 use egui::{Color32, ComboBox, DragValue, FontFamily, Slider, Vec2};
-use r_tree::{BoundingBox, RTree, SplitPolicy, T as TreeValueType};
+use r_tree::{BoundingBox, Interval, RTree, SplitPolicy, T as TreeValueType};
 
 use crate::{draw_tree, BoundedPainter, Highlight};
 
@@ -137,6 +137,19 @@ impl GUIApp {
         self.search_box = None;
     }
 
+    fn format_interval(interval: Interval) -> String {
+        format!("{}..{}", interval.min(), interval.max())
+    }
+
+    fn format_bbox_3d(bbox: BoundingBox<3>) -> String {
+        format!(
+            "{: >10} {: >10} {: >10}",
+            Self::format_interval(bbox.bounds[0]),
+            Self::format_interval(bbox.bounds[1]),
+            Self::format_interval(bbox.bounds[2]),
+        )
+    }
+
     fn tree_builder(&mut self, ui: &mut egui::Ui) {
         ui.label("New tree");
 
@@ -252,9 +265,14 @@ impl GUIApp {
                 Ok(bbox) => {
                     if let TreeDimension::Three(ref mut db) = self.tree_dimension {
                         let old = db.insert(bbox, self.new_value);
-                        match old {
-                            Some(old) => println!("Inserted, replacing value {}", old),
-                            None => println!("Inserted"),
+                        println!(
+                            "Inserted {} at {}",
+                            self.new_value,
+                            Self::format_bbox_3d(bbox)
+                        );
+
+                        if let Some(old) = old {
+                            println!("Replaced value {}", old);
                         }
                     }
                 }
@@ -323,8 +341,11 @@ impl GUIApp {
             ) {
                 Ok(bbox) => {
                     if let TreeDimension::Three(db) = &self.tree_dimension {
+                        println!("Searching @ {}", Self::format_bbox_3d(bbox));
                         let found: Vec<_> = db.search(&bbox).collect();
-                        println!("Found {:?}", found);
+                        for (bbox, data) in found {
+                            println!("{: >8} at {}", data, Self::format_bbox_3d(*bbox));
+                        }
                     }
                 }
                 Err(err) => {
@@ -378,11 +399,13 @@ impl GUIApp {
 
     fn nearest_search_controls_3d(&mut self, ui: &mut egui::Ui) {
         ui.label("Nearest Neighbors");
-        ui.add(Slider::new(&mut self.three_d.nearest_bounds.min[0], 0..=1200).text("min x"));
-        ui.add(Slider::new(&mut self.three_d.nearest_bounds.min[1], 0..=700).text("min y"));
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.min[0], 0..=1000).text("min x"));
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.min[1], 0..=1000).text("min y"));
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.min[2], 0..=1000).text("min z"));
         ui.separator();
-        ui.add(Slider::new(&mut self.three_d.nearest_bounds.max[0], 0..=1200).text("max x"));
-        ui.add(Slider::new(&mut self.three_d.nearest_bounds.max[1], 0..=700).text("max y"));
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.max[0], 0..=1000).text("max x"));
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.max[1], 0..=1000).text("max y"));
+        ui.add(Slider::new(&mut self.three_d.nearest_bounds.max[2], 0..=1000).text("max z"));
         ui.add(DragValue::new(&mut self.k_nearest).speed(0.1))
             .on_hover_text("k");
 
@@ -395,8 +418,16 @@ impl GUIApp {
             ) {
                 Ok(bbox) => {
                     if let TreeDimension::Three(db) = &self.tree_dimension {
+                        println!(
+                            "Searching {} nearest neighbors of {}",
+                            self.k_nearest,
+                            Self::format_bbox_3d(bbox)
+                        );
                         let found: Vec<_> = db.nearest(&bbox).take(self.k_nearest.into()).collect();
-                        println!("Found {:?}", found);
+                        println!("Found");
+                        for (bbox, data) in found {
+                            println!("{: >8} at {}", data, Self::format_bbox_3d(*bbox));
+                        }
                     }
                 }
                 Err(err) => {
@@ -454,9 +485,9 @@ impl eframe::App for GUIApp {
                 painter.text(
                     response.rect.center(),
                     egui::Align2::CENTER_CENTER,
-                    "Visualization is only available for trees of dimension 2",
+                    "Visualization is only available for trees of dimension 2\nRefer to the standard output for output",
                     egui::FontId::new(18.0, FontFamily::default()),
-                    Color32::RED,
+                    Color32::WHITE,
                 );
             }
         });
