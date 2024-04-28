@@ -4,6 +4,7 @@ resolver = "1"
 members = [
     "r_tree",
     "r_tree_gui",
+    "r_tree_benchmarks",
 ]
 
 # Optimize all dependencies even in debug builds:

@@ -1988,6 +1988,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "r_tree_benchmarks"
+version = "0.1.0"
+
+[[package]]
 name = "r_tree_gui"
 version = "0.1.0"
 dependencies = [
