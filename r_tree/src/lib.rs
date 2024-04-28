@@ -8,71 +8,71 @@ mod tree;
 mod iterators;
 mod tree_view;
 
-// #[test]
-// fn test_view() {
-//     let mut db = RTree::with_capacity(2);
-//     db.insert(BoundingBox::from_intervals([Interval::new(0, 0).unwrap(), Interval::new(0, 0).unwrap()]).unwrap(), "Hi!".to_owned());
-//     db.insert(BoundingBox::from_intervals([Interval::new(1, 1).unwrap(), Interval::new(1, 1).unwrap()]).unwrap(), "Hello!".to_owned());
-//     db.insert(BoundingBox::from_intervals([Interval::new(2, 2).unwrap(), Interval::new(2, 2).unwrap()]).unwrap(), "Good morning!".to_owned());
-//     db.insert(BoundingBox::from_intervals([Interval::new(3, 3).unwrap(), Interval::new(3, 3).unwrap()]).unwrap(), "Good evening!".to_owned());
-//     db.insert(BoundingBox::from_intervals([Interval::new(4, 4).unwrap(), Interval::new(4, 4).unwrap()]).unwrap(), "Good afternoon!".to_owned());
-// 
-//     fn print_view(view: NodesView<String, 2>, indent_level: usize) {
-//         let indent = " ".repeat(4 * indent_level);
-//         match view {
-//             NodesView::Leaf(leaf) => {
-//                 let x = leaf.bbox.bounds[0];
-//                 let y = leaf.bbox.bounds[1];
-//                 println!("{}[{}:{},{}:{}] {}", indent, x.min(), x.max(), y.min(), y.max(), leaf.data);
-//             }
-//             NodesView::Inners(inners) => {
-//                 for inner in inners {
-//                     let x = inner.bbox.bounds[0];
-//                     let y = inner.bbox.bounds[1];
-//                     println!("{}[{}:{},{}:{}]:", indent, x.min(), x.max(), y.min(), y.max());
-//                     print_view(inner.nodes, indent_level + 1);
-//                 }
-//             }
-//         }
-//     }
-// 
-//     print_view(db.view().nodes, 0);
-// }
-// 
-// #[test]
-// fn example_usage() {
-//     // Create new R-Tree with specified capacity or use RTree::new(); for optimal capacity for paging
-//     let mut db = RTree::with_capacity(4);
-// 
-//     db.insert(BoundingBox::from_intervals([Interval::new(0, 10).unwrap(), Interval::new(0, 5).unwrap()]).unwrap(), "Hi!".to_owned());
-//     db.insert(BoundingBox::from_intervals([Interval::new(10, 20).unwrap(), Interval::new(0, 5).unwrap()]).unwrap(), "Hello!".to_owned());
-// 
-//     // Get and collect all tree entries
-//     let all_entries = db.iter().collect::<Vec<_>>();
-//     println!("All entries:");
-//     println!("[Hi!, Hello!] : {:?}", all_entries);
-// 
-//     // Get and collect all entries in the bound
-//     let bound = BoundingBox::from_intervals([Interval::new(0, 20).unwrap(), Interval::new(0, 20).unwrap()]).unwrap();
-//     let entries_in_bound = db.search(&bound).collect::<Vec<_>>();
-//     println!("Entries in bound:");
-//     println!("[Hi!, Hello!] : {:?}", entries_in_bound);
-// 
-//     // Get all entries in order of distance to the point
-//     let point = BoundingBox::from_intervals([Interval::new(0, 5).unwrap(), Interval::new(0, 5).unwrap()]).unwrap();
-//     let mut nearest = db.nearest(&point);
-// 
-//     println!("Nearest iteration:");
-//     println!("Hi!           : {:?}", nearest.next());
-//     println!("Hello!        : {:?}", nearest.next());
-//     println!("-             : {:?}", nearest.next());
-// 
-//     // Get only k nearest entries using Iterator::take(k)
-//     let k = 1;
-//     let nearest_k_entries = db.nearest(&point).take(k).collect::<Vec<_>>();
-//     println!("Nearest {k} entries:");
-//     println!("[Hi!]         : {:?}", nearest_k_entries);
-// }
+#[test]
+fn test_view() {
+    let mut db = RTree::with_capacity(2);
+    db.insert(BoundingBox::from_intervals([Interval::new(0, 0).unwrap(), Interval::new(0, 0).unwrap()]).unwrap(), 0);
+    db.insert(BoundingBox::from_intervals([Interval::new(1, 1).unwrap(), Interval::new(1, 1).unwrap()]).unwrap(), 1);
+    db.insert(BoundingBox::from_intervals([Interval::new(2, 2).unwrap(), Interval::new(2, 2).unwrap()]).unwrap(), 2);
+    db.insert(BoundingBox::from_intervals([Interval::new(3, 3).unwrap(), Interval::new(3, 3).unwrap()]).unwrap(), 3);
+    db.insert(BoundingBox::from_intervals([Interval::new(4, 4).unwrap(), Interval::new(4, 4).unwrap()]).unwrap(), 4);
+
+    fn print_view(view: NodesView<2>, indent_level: usize) {
+        let indent = " ".repeat(4 * indent_level);
+        match view {
+            NodesView::Leaf(leaf) => {
+                let x = leaf.bbox.bounds[0];
+                let y = leaf.bbox.bounds[1];
+                println!("{}[{}:{},{}:{}] {}", indent, x.min(), x.max(), y.min(), y.max(), leaf.data);
+            }
+            NodesView::Inners(inners) => {
+                for inner in inners {
+                    let x = inner.bbox.bounds[0];
+                    let y = inner.bbox.bounds[1];
+                    println!("{}[{}:{},{}:{}]:", indent, x.min(), x.max(), y.min(), y.max());
+                    print_view(inner.nodes, indent_level + 1);
+                }
+            }
+        }
+    }
+
+    print_view(db.view().nodes, 0);
+}
+
+#[test]
+fn example_usage() {
+    // Create new R-Tree with specified capacity or use RTree::new(); for optimal capacity for paging
+    let mut db = RTree::with_capacity(4);
+
+    db.insert(BoundingBox::from_intervals([Interval::new(0, 10).unwrap(), Interval::new(0, 5).unwrap()]).unwrap(), 42);
+    db.insert(BoundingBox::from_intervals([Interval::new(10, 20).unwrap(), Interval::new(0, 5).unwrap()]).unwrap(), 69);
+
+    // Get and collect all tree entries
+    let all_entries = db.iter().collect::<Vec<_>>();
+    println!("All entries:");
+    println!("[42, 69] : {:?}", all_entries);
+
+    // Get and collect all entries in the bound
+    let bound = BoundingBox::from_intervals([Interval::new(0, 20).unwrap(), Interval::new(0, 20).unwrap()]).unwrap();
+    let entries_in_bound = db.search(&bound).collect::<Vec<_>>();
+    println!("Entries in bound:");
+    println!("[42, 69] : {:?}", entries_in_bound);
+
+    // Get all entries in order of distance to the point
+    let point = BoundingBox::from_intervals([Interval::new(0, 5).unwrap(), Interval::new(0, 5).unwrap()]).unwrap();
+    let mut nearest = db.nearest(&point);
+
+    println!("Nearest iteration:");
+    println!("42            : {:?}", nearest.next());
+    println!("69            : {:?}", nearest.next());
+    println!("-             : {:?}", nearest.next());
+
+    // Get only k nearest entries using Iterator::take(k)
+    let k = 1;
+    let nearest_k_entries = db.nearest(&point).take(k).collect::<Vec<_>>();
+    println!("Nearest {k} entries:");
+    println!("[42]          : {:?}", nearest_k_entries);
+}
 
 #[test]
 fn test_ser() {
@@ -83,9 +83,9 @@ fn test_ser() {
     db.insert(BoundingBox::from_intervals([Interval::new(0, 0).unwrap(), Interval::new(2, 2).unwrap()]).unwrap(), 2);
     db.insert(BoundingBox::from_intervals([Interval::new(0, 0).unwrap(), Interval::new(3, 3).unwrap()]).unwrap(), 3);
 
-    db.save(Path::new("test.rtree")).unwrap();
+    db.save(std::path::Path::new("test.rtree")).unwrap();
 
-    let mut db2 = RTree::<2>::load(Path::new("test.rtree")).unwrap();
+    let mut db2 = RTree::<2>::load(std::path::Path::new("test.rtree")).unwrap();
 
     assert_eq!(db, db2);
     db2.insert(BoundingBox::from_intervals([Interval::new(0, 0).unwrap(), Interval::new(4, 4).unwrap()]).unwrap(), 4);
