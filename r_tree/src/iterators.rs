@@ -3,20 +3,19 @@ use std::collections::BinaryHeap;
 
 use crate::BoundingBox;
 use crate::node::Node;
-use crate::tree::T;
 
 /// Iterator over all leaf nodes in the tree.
-pub struct LeafIter<'a, const N: usize> {
-    nodes_to_visit: Vec<&'a Node<N>>,
+pub struct LeafIter<'a, T, const N: usize> {
+    nodes_to_visit: Vec<&'a Node<T, N>>,
 }
 
-impl<'a, const N: usize> LeafIter<'a, N> {
-    pub(crate) fn new(node: &'a Node<N>) -> Self {
+impl<'a, T, const N: usize> LeafIter<'a, T, N> {
+    pub(crate) fn new(node: &'a Node<T, N>) -> Self {
         LeafIter { nodes_to_visit: vec![node] }
     }
 }
 
-impl<'a, const N: usize> Iterator for LeafIter<'a, N> {
+impl<'a, T, const N: usize> Iterator for LeafIter<'a, T, N> {
     type Item = (&'a BoundingBox<N>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -35,18 +34,18 @@ impl<'a, const N: usize> Iterator for LeafIter<'a, N> {
 }
 
 /// Iterator over all leaf nodes in the tree that are contained within the given bounding box.
-pub struct SearchIter<'a, const N: usize> {
-    nodes_to_visit: Vec<&'a Node<N>>,
+pub struct SearchIter<'a, T, const N: usize> {
+    nodes_to_visit: Vec<&'a Node<T, N>>,
     bbox: &'a BoundingBox<N>,
 }
 
-impl<'a, const N: usize> SearchIter<'a, N> {
-    pub(crate) fn new(node: &'a Node<N>, bbox: &'a BoundingBox<N>) -> Self {
+impl<'a, T, const N: usize> SearchIter<'a, T, N> {
+    pub(crate) fn new(node: &'a Node<T, N>, bbox: &'a BoundingBox<N>) -> Self {
         SearchIter { nodes_to_visit: vec![node], bbox }
     }
 }
 
-impl<'a, const N: usize> Iterator for SearchIter<'a, N> {
+impl<'a, T, const N: usize> Iterator for SearchIter<'a, T, N> {
     type Item = (&'a BoundingBox<N>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -71,19 +70,19 @@ impl<'a, const N: usize> Iterator for SearchIter<'a, N> {
 }
 
 /// Iterator over all leaf nodes in the tree in order of distance to the given bounding box.
-pub struct NearestNeighborIter<'a, const N: usize> {
-    nodes_to_visit: BinaryHeap<NearestNeighborNode<'a, N>>,
+pub struct NearestNeighborIter<'a, T, const N: usize> {
+    nodes_to_visit: BinaryHeap<NearestNeighborNode<'a, T, N>>,
     bbox: &'a BoundingBox<N>,
 }
 
-impl<'a, const N: usize> NearestNeighborIter<'a, N> {
-    pub(crate) fn new(node: &'a Node<N>, bbox: &'a BoundingBox<N>) -> Self {
+impl<'a, T, const N: usize> NearestNeighborIter<'a, T, N> {
+    pub(crate) fn new(node: &'a Node<T, N>, bbox: &'a BoundingBox<N>) -> Self {
         let distance = bbox.distance(&node.bbox);
         NearestNeighborIter { nodes_to_visit: BinaryHeap::from([NearestNeighborNode { distance, node }]), bbox }
     }
 }
 
-impl<'a, const N: usize> Iterator for NearestNeighborIter<'a, N> {
+impl<'a, T, const N: usize> Iterator for NearestNeighborIter<'a, T, N> {
     type Item = (&'a BoundingBox<N>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -102,26 +101,26 @@ impl<'a, const N: usize> Iterator for NearestNeighborIter<'a, N> {
     }
 }
 
-struct NearestNeighborNode<'a, const N: usize> {
+struct NearestNeighborNode<'a, T, const N: usize> {
     distance: f64,
-    node: &'a Node<N>,
+    node: &'a Node<T, N>,
 }
 
-impl<'a, const N: usize> Eq for NearestNeighborNode<'a, N> {}
+impl<'a, T, const N: usize> Eq for NearestNeighborNode<'a, T, N> {}
 
-impl<'a, const N: usize> PartialEq<Self> for NearestNeighborNode<'a, N> {
+impl<'a, T, const N: usize> PartialEq<Self> for NearestNeighborNode<'a, T, N> {
     fn eq(&self, other: &Self) -> bool {
         self.distance.eq(&other.distance)
     }
 }
 
-impl<'a, const N: usize> PartialOrd<Self> for NearestNeighborNode<'a, N> {
+impl<'a, T, const N: usize> PartialOrd<Self> for NearestNeighborNode<'a, T, N> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(&other))
     }
 }
 
-impl<'a, const N: usize> Ord for NearestNeighborNode<'a, N> {
+impl<'a, T, const N: usize> Ord for NearestNeighborNode<'a, T, N> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.distance.total_cmp(&other.distance)
             .reverse()

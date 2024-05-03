@@ -1,5 +1,5 @@
 pub use crate::bounding_box::{BoundingBox, Interval};
-pub use crate::tree::{RTree, SplitPolicy, T};
+pub use crate::tree::{RTree, SplitPolicy};
 pub use crate::tree_view::{NodesView, NodeView};
 
 mod bounding_box;
@@ -17,7 +17,7 @@ fn test_view() {
     db.insert(BoundingBox::from_intervals([Interval::new(3, 3).unwrap(), Interval::new(3, 3).unwrap()]).unwrap(), 3);
     db.insert(BoundingBox::from_intervals([Interval::new(4, 4).unwrap(), Interval::new(4, 4).unwrap()]).unwrap(), 4);
 
-    fn print_view(view: NodesView<2>, indent_level: usize) {
+    fn print_view<T>(view: NodesView<T, 2>, indent_level: usize) {
         let indent = " ".repeat(4 * indent_level);
         match view {
             NodesView::Leaf(leaf) => {
@@ -85,7 +85,7 @@ fn test_ser() {
 
     db.save(std::path::Path::new("test.rtree")).unwrap();
 
-    let mut db2 = RTree::<2>::load(std::path::Path::new("test.rtree")).unwrap();
+    let mut db2 = RTree::<i32, 2>::load(std::path::Path::new("test.rtree")).unwrap();
 
     assert_eq!(db, db2);
     db2.insert(BoundingBox::from_intervals([Interval::new(0, 0).unwrap(), Interval::new(4, 4).unwrap()]).unwrap(), 4);

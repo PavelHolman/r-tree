@@ -1,23 +1,23 @@
 use serde::{Deserialize, Serialize};
 use crate::bounding_box::BoundingBox;
 use crate::iterators::{LeafIter, NearestNeighborIter, SearchIter};
-use crate::tree::{SplitPolicy, T};
+use crate::tree::SplitPolicy;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub(crate) enum Data<const N: usize> {
+pub(crate) enum Data<T, const N: usize> {
     Leaf(T),
-    Inner(Vec<Node<N>>),
+    Inner(Vec<Node<T, N>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub(crate) struct Node<const N: usize> {
+pub(crate) struct Node<T, const N: usize> {
     pub(crate) bbox: BoundingBox<N>,
-    pub(crate) data: Data<N>,
+    pub(crate) data: Data<T, N>,
 }
 
-impl<const N: usize> Node<N> {
+impl<T, const N: usize> Node<T, N> {
     pub(crate) fn new_leaf(bbox: BoundingBox<N>, data: T) -> Self {
         Self {
             bbox,
@@ -100,7 +100,7 @@ impl<const N: usize> Node<N> {
     /// Chooses the best node to insert the new bounding box into.
     /// The best node is the one with the smallest increase in area after adding the bounding box.
     /// If the area increase is the same, the node with the least amount of children is chosen.
-    fn choose_best_node<'a>(nodes: &'a mut Vec<Self>, bbox: &BoundingBox<N>) -> &'a mut Node<N> {
+    fn choose_best_node<'a>(nodes: &'a mut Vec<Self>, bbox: &BoundingBox<N>) -> &'a mut Node<T, N> {
         nodes
             .iter_mut()
             .min_by_key(|node|
@@ -194,15 +194,15 @@ impl<const N: usize> Node<N> {
         }
     }
 
-    pub(crate) fn iter(&self) -> LeafIter<N> {
+    pub(crate) fn iter(&self) -> LeafIter<T, N> {
         LeafIter::new(self)
     }
 
-    pub(crate) fn search<'a>(&'a self, bbox: &'a BoundingBox<N>) -> SearchIter<N> {
+    pub(crate) fn search<'a>(&'a self, bbox: &'a BoundingBox<N>) -> SearchIter<T, N> {
         SearchIter::new(self, bbox)
     }
 
-    pub(crate) fn nearest<'a>(&'a self, bbox: &'a BoundingBox<N>) -> NearestNeighborIter<N> {
+    pub(crate) fn nearest<'a>(&'a self, bbox: &'a BoundingBox<N>) -> NearestNeighborIter<T, N> {
         NearestNeighborIter::new(self, bbox)
     }
 }

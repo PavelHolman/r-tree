@@ -7,8 +7,6 @@ use crate::bounding_box::BoundingBox;
 use crate::node::Node;
 use crate::tree_view::RootView;
 
-pub type T = usize;
-
 /// Defines the policy for splitting nodes when they reach the maximum capacity.
 /// The policy can be one of:
 /// - Half: Split the nodes in half in order of insertion.
@@ -29,14 +27,14 @@ pub enum SplitPolicy {
 /// The tree is generic over the data type T and the compile time dimension N of the bounding boxes.
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct RTree<const N: usize> {
-    pub(crate) root: Node<N>,
+pub struct RTree<T, const N: usize> {
+    pub(crate) root: Node<T, N>,
     split_policy: SplitPolicy,
     capacity: usize,
     length: usize,
 }
 
-impl<const N: usize> Default for RTree<N> {
+impl<T, const N: usize> Default for RTree<T, N> {
     fn default() -> Self {
         Self {
             root: Node::new_node(vec![]),
@@ -47,29 +45,29 @@ impl<const N: usize> Default for RTree<N> {
     }
 }
 
-impl<const N: usize> RTree<N> {
+impl<T, const N: usize> RTree<T, N> {
     const DISK_PAGE_SIZE: usize = 4096;
-    const NODE_SIZE: usize = std::mem::size_of::<Node<N>>();
+    const NODE_SIZE: usize = std::mem::size_of::<Node<T, N>>();
     const DEFAULT_CAPACITY: usize = Self::DISK_PAGE_SIZE / Self::NODE_SIZE;
     const DEFAULT_SPLIT_POLICY: SplitPolicy = if Self::DEFAULT_CAPACITY < 8 { SplitPolicy::BruteForce } else { SplitPolicy::Greedy };
 
     /// Initialize a new R-Tree with a default node capacity optimized for disk pages.
-    pub fn new() -> RTree<N> {
+    pub fn new() -> RTree<T, N> {
         Self::with_capacity_and_split_policy(Self::DEFAULT_CAPACITY, Self::DEFAULT_SPLIT_POLICY)
     }
 
     /// Initialize a new R-Tree with a custom node capacity.
-    pub fn with_capacity(capacity: usize) -> RTree<N> {
+    pub fn with_capacity(capacity: usize) -> RTree<T, N> {
         Self::with_capacity_and_split_policy(capacity, if capacity < 8 { SplitPolicy::BruteForce } else { SplitPolicy::Greedy })
     }
 
     /// Initialize a new R-Tree with a custom split policy.
-    pub fn with_split_policy(split_policy: SplitPolicy) -> RTree<N> {
+    pub fn with_split_policy(split_policy: SplitPolicy) -> RTree<T, N> {
         Self::with_capacity_and_split_policy(Self::DEFAULT_CAPACITY, split_policy)
     }
 
     /// Initialize a new R-Tree with a custom node capacity and split policy.
-    pub fn with_capacity_and_split_policy(capacity: usize, split_policy: SplitPolicy) -> RTree<N> {
+    pub fn with_capacity_and_split_policy(capacity: usize, split_policy: SplitPolicy) -> RTree<T, N> {
         if capacity < 2 {
             panic!("Node capacity has to be at least 2!")
         }
@@ -80,7 +78,7 @@ impl<const N: usize> RTree<N> {
         }
     }
 
-    pub fn view<'a, 'b>(&'b self) -> RootView<'a, N>
+    pub fn view<'a, 'b>(&'b self) -> RootView<'a, T, N>
         where 'b: 'a {
         RootView::new(&self)
     }
@@ -121,12 +119,14 @@ impl<const N: usize> RTree<N> {
         self.root.nearest(bbox)
     }
 
-    pub fn save(&self, path: &Path) -> Result<(), impl Error> {
+    pub fn save(&self, path: &Path) -> Result<(), impl Error>
+        where T: Serialize {
         let mut file = std::fs::File::create(path)?;
         bincode::serialize_into(&mut file, &self)
     }
 
-    pub fn load(path: &Path) -> Result<Self, impl Error> {
+    pub fn load(path: &Path) -> Result<Self, impl Error>
+        where T: for<'a> Deserialize<'a> {
         let file = std::fs::File::open(path)?;
         bincode::deserialize_from(file)
     }
