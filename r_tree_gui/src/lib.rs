@@ -6,6 +6,7 @@ use egui::{
 };
 use r_tree::{BoundingBox, NodeView, NodesView, RTree};
 use std::{collections::HashMap, fmt::Display};
+use crate::app::TreeValueType;
 
 mod app;
 
@@ -126,13 +127,13 @@ impl BoundedPainter {
         self.rect(rect, ROUNDING, Stroke::new(stroke_width, stroke_color));
     }
 
-    fn draw_node_view(&self, node_view: &NodeView<'_, 2>, depth: u32) {
+    fn draw_node_view(&self, node_view: &NodeView<'_, TreeValueType, 2>, depth: u32) {
         let rect = to_rect(node_view.bbox);
         self.draw_rect(rect, Highlight::Node(depth));
         self.draw_nodes_view(&node_view.nodes, depth);
     }
 
-    fn draw_nodes_view(&self, nodes_view: &NodesView<'_, 2>, depth: u32) {
+    fn draw_nodes_view(&self, nodes_view: &NodesView<'_, TreeValueType, 2>, depth: u32) {
         match nodes_view {
             NodesView::Inners(node_views) => {
                 for node_view in node_views.into_iter() {
@@ -152,7 +153,7 @@ fn to_rect(bbox: &BoundingBox<2>) -> Rect {
 
 pub(crate) fn draw_tree(
     painter: BoundedPainter,
-    tree: &RTree<2>,
+    tree: &RTree<TreeValueType, 2>,
     highlighted: &HashMap<BoundingBox<2>, Highlight>,
     search_box: Option<BoundingBox<2>>,
 ) {

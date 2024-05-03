@@ -1,9 +1,11 @@
 use std::{collections::HashMap, iter::repeat, usize};
 
 use egui::{Color32, ComboBox, DragValue, FontFamily, Slider, Vec2};
-use r_tree::{BoundingBox, Interval, RTree, SplitPolicy, T as TreeValueType};
+use r_tree::{BoundingBox, Interval, RTree, SplitPolicy};
 
 use crate::{draw_tree, BoundedPainter, Highlight};
+
+pub type TreeValueType = u64;
 
 struct TreeParams {
     dimension: u8,
@@ -29,8 +31,8 @@ impl Default for TreeParams {
 
 #[derive(serde::Deserialize, serde::Serialize)]
 enum TreeDimension {
-    Two(RTree<2>),
-    Three(RTree<3>),
+    Two(RTree<TreeValueType, 2>),
+    Three(RTree<TreeValueType, 3>),
 }
 struct Bounds<const N: usize> {
     min: [u64; N],
