@@ -34,10 +34,10 @@ mod test {
         let insert_range = 0..100000;
         let search_range = 0..1000;
 
-        let mut tree = RTree::<2>::new();
+        let mut tree = RTree::new();
         let mut seq = vec![];
 
-        let insert = generate_points(42, n_intervals, insert_range.clone());
+        let insert = generate_points::<2>(42, n_intervals, insert_range.clone());
 
         let start_tree_insert = Instant::now();
         insert.clone().into_iter().enumerate().for_each(|(i, bbox)| { tree.insert(bbox, i); });
@@ -73,9 +73,9 @@ mod test {
         let insert_range = 0..100000;
         let search_range = 0..1000;
 
-        let mut tree = RTree::<1>::new();
+        let mut tree = RTree::new();
 
-        let insert = generate_points(42, n_intervals, insert_range.clone());
+        let insert = generate_points::<1>(42, n_intervals, insert_range.clone());
 
         let start_tree_insert = Instant::now();
         insert.clone().into_iter().enumerate().for_each(|(i, bbox)| { tree.insert(bbox, i); });
@@ -99,9 +99,9 @@ mod test {
         let insert_range = 0..100000;
         let search_range = 0..1000;
 
-        let mut tree = RTree::<3>::new();
+        let mut tree = RTree::new();
 
-        let insert = generate_points(42, n_intervals, insert_range.clone());
+        let insert = generate_points::<3>(42, n_intervals, insert_range.clone());
 
         let start_tree_insert = Instant::now();
         insert.clone().into_iter().enumerate().for_each(|(i, bbox)| { tree.insert(bbox, i); });
@@ -125,9 +125,9 @@ mod test {
         let insert_range = 0..100000;
         let search_range = 0..1000;
 
-        let mut tree = RTree::<2>::with_capacity_and_split_policy(4, SplitPolicy::BruteForce);
+        let mut tree = RTree::with_capacity_and_split_policy(4, SplitPolicy::BruteForce);
 
-        let insert = generate_points(42, n_intervals, insert_range.clone());
+        let insert = generate_points::<2>(42, n_intervals, insert_range.clone());
 
         let start_tree_insert = Instant::now();
         insert.clone().into_iter().enumerate().for_each(|(i, bbox)| { tree.insert(bbox, i); });
@@ -151,9 +151,9 @@ mod test {
         let insert_range = 0..100000;
         let search_range = 0..1000;
 
-        let mut tree = RTree::<2>::with_capacity_and_split_policy(4, SplitPolicy::Greedy);
+        let mut tree = RTree::with_capacity_and_split_policy(4, SplitPolicy::Greedy);
 
-        let insert = generate_points(42, n_intervals, insert_range.clone());
+        let insert = generate_points::<2>(42, n_intervals, insert_range.clone());
 
         let start_tree_insert = Instant::now();
         insert.clone().into_iter().enumerate().for_each(|(i, bbox)| { tree.insert(bbox, i); });
@@ -177,9 +177,9 @@ mod test {
         let insert_range = 0..100000;
         let search_range = 0..1000;
 
-        let mut tree = RTree::<2>::with_capacity_and_split_policy(4, SplitPolicy::Half);
+        let mut tree = RTree::with_capacity_and_split_policy(4, SplitPolicy::Half);
 
-        let insert = generate_points(42, n_intervals, insert_range.clone());
+        let insert = generate_points::<2>(42, n_intervals, insert_range.clone());
 
         let start_tree_insert = Instant::now();
         insert.clone().into_iter().enumerate().for_each(|(i, bbox)| { tree.insert(bbox, i); });
@@ -203,9 +203,9 @@ mod test {
         let insert_range = 0..100000;
         let search_range = 0..1000;
 
-        let mut tree = RTree::<2>::with_capacity_and_split_policy(4, SplitPolicy::Random);
+        let mut tree = RTree::with_capacity_and_split_policy(4, SplitPolicy::Random);
 
-        let insert = generate_points(42, n_intervals, insert_range.clone());
+        let insert = generate_points::<2>(42, n_intervals, insert_range.clone());
 
         let start_tree_insert = Instant::now();
         insert.clone().into_iter().enumerate().for_each(|(i, bbox)| { tree.insert(bbox, i); });
